@@ -379,56 +379,50 @@ void Tarjan(int u){
 \subsubsection{普通有向图转DAG全家桶（去重边，去自环）}
 
 \begin{lstlisting}[language=C++]
-const int maxn = 5e5 + 5;
-struct Edge {
-    int to, nxt;
-} E1[maxn << 1], E2[maxn << 1];
-int head1[maxn], head2[maxn], tot1, tot2;
-int n, m, N;
-void init() {
-    for(int i = 0; i <= n; ++i) {
-        head1[i] = head2[i] = -1;
+const int maxn = 1e5 + 5;
+struct Gragh {
+    struct Edge {
+        int to, nxt;
+    } E[maxn << 1];
+    int head[maxn], tot;
+    void init(int n) {
+        for (int i = 0; i <= n; ++i) head[i] = -1;
+        tot = 0;
     }
-    tot1 = tot2 = 0;
-}
-void addEdge1(int u, int v) {
-    E1[tot1] = {v, head1[u]};
-    head1[u] = tot1++;
-}
-void addEdge2(int u, int v) {
-    E2[tot2] = {v, head2[u]};
-    head2[u] = tot2++;
-}
+    void add_edge(int u, int v) {
+        E[tot] = {v, head[u]};
+        head[u] = tot++;
+    }
+} G1, G2;
 int dfn[maxn], low[maxn], cnt;
-int st[maxn], color[maxn], tp;
+int st[maxn], tp, color[maxn];
 bool ins[maxn];
+int n, m, t, N;
 void Tarjan(int x) {
     ins[x] = true;
     dfn[x] = low[x] = ++cnt;
     st[tp++] = x;
-    for(int i = head1[x]; i != -1; i = E1[i].nxt) {
-        int to = E1[i].to;
-        if(dfn[to] == 0) {
+    for (int i = G1.head[x]; i != -1; i = G1.E[i].nxt) {
+        int to = G1.E[i].to;
+        if (dfn[to] == 0) {
             Tarjan(to);
             low[x] = min(low[x], low[to]);
-        } else if(ins[to]) {
+        } else if (ins[to]) {
             low[x] = min(low[x], dfn[to]);
         }
     }
-    if(dfn[x] == low[x]) {
+    if (dfn[x] == low[x]) {
         ++N;
-        while(true) {
+        while (true) {
             int now = st[--tp];
             color[now] = N; ins[now] = false;
-            /*
-                这里根据题目要求维护相关信息即可
-            */
-            if(now == x) break;
+            // maintain something
+            if (now == x) break;
         }
     }
 }
-unordered_map<int, bool> vis[maxn];
-void Solve() {
+unordered_map<int, int> vis[maxn];
+void solve() {
     cnt = tp = N = 0;
     for(int i = 0; i <= n; ++i) {
         ins[i] = false;
@@ -439,13 +433,13 @@ void Solve() {
         Tarjan(i);
     }
     for(int i = 1; i <= n; ++i) {
-        for(int j = head1[i]; j != -1; j = E1[j].nxt) {
-            int to = E1[j].to;
+        for(int j = G1.head[i]; j != -1; j = G1.E[j].nxt) {
+            int to = G1.E[j].to;
             int ci = color[i], ct = color[to];
             if(ci == ct) continue;
-            if(vis[ci][ct]) continue;
-            vis[ci][ct] = true;
-            addEdge2(ci, ct);
+            if(vis[ci][ct] > 0) continue;
+            ++vis[ci][ct];
+            G2.add_edge(ci, ct);
         }
     }
 }
@@ -499,129 +493,7 @@ void Tarjan(int x) {
         while(true) {
             int now = st[--tp];
             color[now] = N; ins[now] = false;
-            const int maxn = 5e5 + 5;
-            struct Edge {
-                int to, nxt;
-            } E1[maxn << 1], E2[maxn << 1];
-            int head1[maxn], head2[maxn], tot1, tot2;
-            int n, m;
-            void init() {
-                for(int i = 0; i <= n; ++i) {
-                    head1[i] = head2[i] = -1;
-                }
-                tot1 = tot2 = 0;
-            
-            }
-            void addEdge1(int u, int v) {
-                E1[tot1] = {v, head1[u]};
-                head1[u] = tot1++;
-            }
-            void addEdge2(int u, int v) {
-                E2[tot2] = {v, head2[u]};
-                head2[u] = tot2++;
-            }
-            int dfn[maxn], low[maxn], cnt;
-            int st[maxn], color[maxn], tp, N;
-            bool ins[maxn], ok1[maxn], ok2[maxn];
-            int val1[maxn], val2[maxn];
-            void Tarjan(int x) {
-                ins[x] = true;
-                dfn[x] = low[x] = ++cnt;
-                st[tp++] = x;
-                for(int i = head1[x]; i != -1; i = E1[i].nxt) {
-                    int to = E1[i].to;
-                    if(dfn[to] == 0) {
-                        Tarjan(to);
-                        low[x] = min(low[x], low[to]);
-                    } else if(ins[to]) {
-                        low[x] = min(low[x], dfn[to]);
-                    }
-                }
-                if(dfn[x] == low[x]) {
-                    ++N;
-                    while(true) {
-                        int now = st[--tp];
-                        color[now] = N; ins[now] = false;
-                        /*
-                            这里根据题目要求维护相关信息即可
-                        */
-                        ok2[N] |= ok1[now];
-                        val2[N] += val1[now];
-                        if(now == x) break;
-                    }
-                }
-            }
-            unordered_map<int, bool> vis[maxn];
-            void Solve() {
-                cnt = tp = N = 0;
-                for(int i = 0; i <= n; ++i) {
-                    ins[i] = false;
-                    dfn[i] = low[i] = val2[i] = 0;
-                }
-                for(int i = 1; i <= n; ++i) {
-                    if(dfn[i] != 0) continue;
-                    Tarjan(i);
-                }
-                for(int i = 1; i <= n; ++i) {
-                    for(int j = head1[i]; j != -1; j = E1[j].nxt) {
-                        int to = E1[j].to;
-                        int ci = color[i], ct = color[to];
-                        if(ci == ct) continue;
-                        if(vis[ci][ct]) continue;
-                        vis[ci][ct] = true;
-                        addEdge2(ci, ct);
-                    }
-                }
-            }
-            int sum[maxn], q[maxn], ind2[maxn], lf, rt;
-            void Dfs(int x) {
-                for(int i = head2[x]; i != -1; i = E2[i].nxt) {
-                    int to = E2[i].to;
-                    if(ind2[to] == 0) Dfs(to);
-                    ++ind2[to];
-                }
-            }
-            void Topo(int s) {
-                lf = rt = 0;
-                for(int i = 1; i <= N; ++i) ind2[i] = 0;
-                Dfs(s);
-                q[rt++] = s;
-                while(lf < rt) {
-                    int x = q[lf++];
-                    sum[x] += val2[x];
-                    for(int i = head2[x]; i != -1; i = E2[i].nxt) {
-                        int to = E2[i].to;
-                        sum[to] = max(sum[to], sum[x]);
-                        if(--ind2[to] == 0) q[rt++] = to;
-                    }
-                }
-            }
-            int main() {
-                scanf("%d%d", &n, &m);
-                init();
-                for(int i = 0; i < m; ++i) {
-                    int x, y; scanf("%d%d", &x, &y);
-                    addEdge1(x, y);
-                }
-                for(int i = 1; i <= n; ++i) scanf("%d", &val1[i]);
-                int s, p; scanf("%d%d", &s, &p);
-                for(int i = 0; i < p; ++i) {
-                    int x; scanf("%d", &x);
-                    ok1[x] = true;
-                }
-                Solve();
-                for(int i = 0; i <= n; ++i) sum[i] = 0;
-                Topo(color[s]);
-                int ans = 0;
-                for(int i = 1; i <= n; ++i) {
-                    if(!ok2[i]) continue;
-                    ans = max(ans, sum[i]);
-                }
-                printf("%d\n", ans);
-                return 0;
-            }   /*
-                这里根据题目要求维护相关信息即可
-            */
+            //    这里根据题目要求维护相关信息即可
             ok2[N] |= ok1[now];
             val2[N] += val1[now];
             if(now == x) break;

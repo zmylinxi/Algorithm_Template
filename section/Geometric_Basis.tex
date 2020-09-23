@@ -105,7 +105,7 @@ Vector Rotate(Vector A, double rad){
 struct Line{
     Point v, p;
     Line(Point v, Point p):v(v), p(p) {}
-    Point point(double t){//返回点P = v + (p - v)*t
+    Point point(double t){ // 返回点 P = v + (p - v)*t
         return v + (p - v)*t;
     }
 };
