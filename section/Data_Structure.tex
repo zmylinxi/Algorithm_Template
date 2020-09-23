@@ -1,0 +1,2207 @@
+
+
+\section{数据结构}
+
+\subsection{线段树}
+
+\subsubsection{动态开点线段树}
+
+\begin{lstlisting}[language=C++]
+struct SegTree {
+    int l, r;
+    int ls, rs;
+    int sum, lazy;
+} st[maxn];
+int stc = 0; // Segment Tree counting number
+int root; // root of Segment Tree
+void pushUp(int x) {
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    now.sum = ls.sum + rs.sum;
+    now.l = ls.l;
+    now.r = rs.r;
+}
+void build(int lf, int rt, int x) {
+    SegTree& now = st[x];
+    if(lf == rt) {
+        now.ls = now.rs = now.lazy = -1;
+        now.l = now.r = lf;
+        return ;
+    }
+    int mid = (lf + rt)>>1;
+    now.ls = stc++; now.rs = stc++;
+    build(lf, mid, now.ls);
+    build(mid + 1, rt, now.rs);
+    pushUp(x);
+}
+void pushDown(int x) {
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    ls.sum = now.lazy*(ls.r - ls.l + 1);
+    rs.sum = now.lazy*(rs.r - rs.l + 1);
+    ls.lazy = now.lazy;
+    rs.lazy = now.lazy;
+    now.lazy = -1;
+}
+void update(int lf, int rt, int c, int x) {
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) {
+        now.sum = c*(now.r - now.l + 1);
+        now.lazy = c;
+        return ;
+    }
+    if(now.lazy != -1) pushDown(x);
+    int mid = (now.l + now.r)>>1;
+    if(lf <= mid) update(lf, rt, c, now.ls);
+    if(rt > mid) update(lf, rt, c, now.rs);
+    pushUp(x);
+}
+int query(int lf, int rt, int x) {
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) return now.sum;
+    if(now.lazy != -1) pushDown(x);
+    int ret = 0, mid = (now.l + now.r)>>1;
+    if(lf <= mid) ret += query(lf, rt, now.ls);
+    if(rt > mid) ret += query(lf, rt, now.rs);
+    return ret;
+}
+
+int main() {
+    root = stc++;
+    build(1, n, root);
+
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{区间最大字段和}
+
+有 n 个数，a[1] 到 a[n]。
+
+接下来 q 次查询，每次动态指定两个数 l, r，求 a[l] 到 a[r] 的最大子段和。
+
+子段的意思是连续非空区间。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e4 + 5;
+ll a[maxn];
+struct node{
+    int lf, rt;
+    ll sum;
+    ll mxl, mxr, mxa;
+} tree[maxn << 2];
+void pushUp(int x) {
+    node& ls = tree[x<<1];
+    node& rs = tree[x<<1|1];
+    node& now = tree[x];
+    now.sum = ls.sum + rs.sum;
+    now.mxl = max(ls.mxl, ls.sum + rs.mxl);
+    now.mxr = max(rs.mxr, rs.sum + ls.mxr);
+    ll a = ls.mxa, b = rs.mxa, c = ls.mxr + rs.mxl;
+    now.mxa = max(a, max(b, c));
+}
+void build(int x, int l, int r){
+    node& now = tree[x];
+    now.lf = l, now.rt = r;
+    if(l == r){
+        now.sum = now.mxa = a[l];
+        now.mxl = now.mxr = a[l];
+        return ;
+    }
+    int mid = (l + r)>>1;
+    int ls = (x<<1), rs = (x<<1)|1;
+    build(ls, l, mid);
+    build(rs, mid + 1, r);
+    pushUp(x);
+}
+ll querySum(int x, int l, int r){
+     node& now = tree[x];
+    if(l == now.lf && r == now.rt) return now.sum;
+    int mid = (now.lf + now.rt)>>1;
+    int ls = x<<1, rs = (x<<1)|1;
+    if(mid >= r) return querySum(ls, l, r);
+    if(mid < l) return querySum(rs, l, r);
+    ll ret = querySum(ls, l, mid) + querySum(rs, mid + 1, r);
+    return ret;
+}
+ll queryLf(int x, int l, int r){
+    node& now = tree[x];
+    if(l == now.lf && r == now.rt) return now.mxl;
+    int mid = (now.lf + now.rt)>>1;
+    int ls = x<<1, rs = (x<<1)|1;
+    if(mid >= r) return queryLf(ls, l, r);
+    if(mid < l) return queryLf(rs, l, r);
+    ll ret = max(queryLf(ls, l, mid), queryLf(rs, mid + 1, r) + querySum(ls, l, mid));
+    return ret;
+}
+ll queryRt(int x, int l, int r){
+    node& now = tree[x];
+    if(l == now.lf && r == now.rt) return now.mxr;
+    int mid = (now.lf + now.rt)>>1;
+    int ls = x<<1, rs = (x<<1)|1;
+    if(mid >= r) return queryRt(ls, l, r);
+    if(mid < l) return queryRt(rs, l, r);
+    ll ret = max(queryRt(rs, mid + 1, r), queryRt(ls, l, mid) + querySum(rs, mid + 1, r));
+    return ret;
+}
+ll queryAll(int x, int l, int r){
+    node& now = tree[x];
+    if(l == now.lf && r == now.rt) return now.mxa;
+    int mid = (now.lf + now.rt)>>1;
+    int ls = x<<1, rs = (x<<1)|1;
+    if(mid >= r) return queryAll(ls, l, r);
+    if(mid < l) return queryAll(rs, l, r);
+    ll ret = max(queryAll(ls, l, mid), queryAll(rs, mid + 1, r));
+    ret = max(ret, queryLf(rs, mid + 1, r) + queryRt(ls, l, mid));
+    return ret;
+}
+int main(){
+    int n; scanf("%d", &n);
+    for(int i = 1; i <= n; ++i) scanf("%lld", &a[i]);
+    build(1, 1, n);
+    int q; scanf("%d", &q);
+    while(q--){
+        int x, y; scanf("%d%d", &x, &y);
+        ll ans = queryAll(1, x, y);
+        printf("%lld\n", ans);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{权值线段树启发式合并}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+struct SegTree {
+    int l, r, lc, rc;
+    int num;
+    SegTree() {
+        l = r = 0;
+        lc = rc = 0;
+        num = 0;
+    }
+}tree[maxn << 5];  // size = n*log_n
+int root[maxn], fa[maxn], tot = 0;
+int reuse[maxn << 5], cnt = 0;
+void ist(int& x, int lf, int rt, int y) {
+    if(x == 0) {
+        if(cnt == 0) x = ++tot;
+        else x = reuse[--cnt];
+    }
+    SegTree& st = tree[x];
+    st.l = lf, st.r = rt;
+    if(lf == rt) {
+        st.num = 1;
+        return ;
+    }
+    int mid = (lf + rt) >> 1;
+    if(y <= mid) ist(st.lc, lf, mid, y);
+    else ist(st.rc, mid + 1, rt, y);
+    st.num = tree[st.lc].num + tree[st.rc].num;
+}
+int kth(int x, int k) {
+    SegTree& st = tree[x];
+    if(k > st.num) return -1;
+    if(st.l == st.r) return st.l;
+    int lc = st.lc, rc = st.rc;
+    if(tree[lc].num >= k) return kth(lc, k);
+    else return kth(rc, k - tree[lc].num);
+}
+int query(int x, int lf, int rt) {
+    if(x == 0) return 0;
+    SegTree& st = tree[x];
+    if(st.l >= lf && st.r <= rt) return st.num;
+    int ret = 0;
+    int mid = (st.l + st.r) >> 1;
+    if(mid >= lf) ret += query(st.lc, lf, rt);
+    if(mid < rt) ret += query(st.rc, lf, rt);
+    return ret;
+}
+void del(int x) {
+    if(x == 0) return ;
+    tree[x].l = tree[x].r = 0;
+    tree[x].lc = tree[x].rc = 0;
+    tree[x].num = 0;
+    reuse[cnt++] = x;
+}
+int mrg(int x, int y) {
+    if(x == 0) return y;
+    if(y == 0) return x;
+    if(tree[x].num < tree[y].num) swap(x, y);
+    int xlc = tree[x].lc, xrc = tree[x].rc;
+    int ylc = tree[y].lc, yrc = tree[y].rc;
+    tree[x].lc = mrg(xlc, ylc);
+    tree[x].rc = mrg(xrc, yrc);
+    tree[x].num += tree[y].num;
+    del(y);
+    return x;
+}
+\end{lstlisting}
+
+\subsubsection{矩形周长并}
+
+\begin{lstlisting}[language=C++]
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <unordered_map>
+using namespace std;
+typedef long long ll;
+const ll mod = 1e9 + 7;
+const int inf = 0x3f3f3f3f;
+const ll linf = 0x3f3f3f3f3f3f3f3f;
+// (max N) * 4
+const int maxn = (5e4 + 5)*4;
+struct Rect {
+    int lf, rt, up, down;
+} r[maxn];
+struct Event {
+    int lf, rt, tp;
+    bool operator <(const Event& rhs) const {
+        return tp > rhs.tp;
+    }
+};
+vector<Event> E[maxn];
+struct SegTree {
+    int lf, rt;
+    ll mi, mx, lazy, len;
+    void pt() {
+        printf("[%d, %d]: mi: %lld mx: %lld lazy: %lld len: %lld\n", lf, rt, mi, mx, lazy, len);
+    }
+} st[maxn << 2];
+vector<int> v;
+ll len[maxn];
+void Build(int x, int lf, int rt) {
+    SegTree& now = st[x];
+    now.lf = lf, now.rt = rt;
+    now.mi = 0; now.mx = 0;
+    now.lazy = 0;
+    if(lf == rt) {
+        now.len = len[lf];
+        return ;
+    }
+    int mid = (lf + rt) >> 1;
+    Build(x << 1, lf, mid);
+    Build(x << 1 | 1, mid + 1, rt);
+    now.len = st[x << 1].len + st[x << 1 | 1].len;
+}
+void PushUp(int x) {
+    SegTree& now = st[x];
+    const SegTree& lc = st[x << 1];
+    const SegTree& rc = st[x << 1 | 1];
+    now.mi = min(lc.mi, rc.mi);
+    now.mx = max(lc.mx, rc.mx);
+}
+void PushDown(int x) {
+    SegTree& now = st[x];
+    if(now.lazy == 0) return ;
+    SegTree& lc = st[x << 1];
+    SegTree& rc = st[x << 1 | 1];
+    lc.lazy += now.lazy;
+    lc.mi += now.lazy;
+    lc.mx += now.lazy;
+    rc.lazy += now.lazy;
+    rc.mi += now.lazy;
+    rc.mx += now.lazy;
+    now.lazy = 0;
+}
+ll add(int x, int lf, int rt) {
+    if(lf > rt) return 0LL;
+    SegTree& now = st[x];
+    if(lf <= now.lf && rt >= now.rt) {
+        if(now.mx <= 0) {
+            ++now.mi; ++now.mx;
+            ++now.lazy;
+            return now.len;
+        }
+        if(now.mi > 0) {
+            ++now.mi; ++now.mx;
+            ++now.lazy;
+            return 0;
+        }
+    }
+    PushDown(x);
+    ll ret = 0;
+    int mid = (now.lf + now.rt) >> 1;
+    if(mid >= lf) ret += add(x << 1, lf, rt);
+    if(mid < rt) ret += add(x << 1 | 1, lf, rt);
+    PushUp(x);
+    return ret;
+}
+ll del(int x, int lf, int rt) {
+    if(lf > rt) return 0LL;
+    SegTree& now = st[x];
+    if(lf <= now.lf && rt >= now.rt) {
+        if(now.mx <= 1) {
+            --now.mi; --now.mx;
+            --now.lazy;
+            return now.len;
+        }
+        if(now.mi > 1) {
+            --now.mi; --now.mx;
+            --now.lazy;
+            return 0;
+        }
+    }
+    PushDown(x);
+    ll ret = 0;
+    int mid = (now.lf + now.rt) >> 1;
+    if(mid >= lf) ret += del(x << 1, lf, rt);
+    if(mid < rt) ret += del(x << 1 | 1, lf, rt);
+    PushUp(x);
+    return ret;
+}
+int n, sz;
+ll solve() {
+    ll ret = 0;
+    Build(1, 1, sz);
+    for(int i = 1; i <= sz; ++i) {
+        sort(E[i].begin(), E[i].end());
+        int sz = E[i].size();
+        for(int j = 0; j < sz; ++j) {
+            Event& now = E[i][j];
+            if(now.tp > 0) ret += add(1, now.lf, now.rt);
+            else ret += del(1, now.lf, now.rt);
+        }
+        E[i].clear();
+    }
+    return ret;
+}
+unordered_map<int, int> id;
+void init() {
+    sort(v.begin(), v.end());
+    v.erase(unique(v.begin(), v.end()), v.end());
+    sz = v.size();
+    for(int i = 0; i < sz; ++i) {
+        id[v[i]] = i + 1;
+        if(i > 0) len[i] = v[i] - v[i - 1];
+    }
+}
+int main(){
+    scanf("%d", &n);
+    for(int i = 0; i < n; ++i) {
+        scanf("%d%d%d%d", &r[i].lf, &r[i].down, &r[i].rt, &r[i].up);
+        v.push_back(r[i].lf); v.push_back(r[i].rt);
+        v.push_back(r[i].down); v.push_back(r[i].up);
+    }
+    init();
+    for(int i = 0; i < n; ++i) {
+        r[i].lf = id[r[i].lf];
+        r[i].rt = id[r[i].rt];
+        r[i].down = id[r[i].down];
+        r[i].up = id[r[i].up];
+    }
+    for(int i = 0; i < n; ++i) {
+        E[r[i].down].push_back({r[i].lf, r[i].rt - 1, 1});
+        E[r[i].up].push_back({r[i].lf, r[i].rt - 1, -1});
+    }
+    ll ans = solve();
+    for(int i = 0; i < n; ++i) {
+        E[r[i].lf].push_back({r[i].down, r[i].up - 1, 1});
+        E[r[i].rt].push_back({r[i].down, r[i].up - 1, -1});
+    }
+    ans += solve();
+    printf("%lld\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{主席树}
+
+区间第 k 大
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+struct node{
+    int l, r;
+    int sum;
+} T[maxn << 5];
+int a[maxn], cnt, root[maxn];
+void update(int l, int r, int& x, int y, int pos){
+    T[++cnt] = T[y]; ++T[cnt].sum; x = cnt;
+    if(l == r) return ;
+    int mid = (l + r) >> 1;
+    if(mid >= pos) update(l, mid, T[x].l, T[y].l, pos);
+    else update(mid + 1, r, T[x].r, T[y].r, pos);
+}
+int query(int l, int r, int x, int y, int k){
+    if(l == r) return l;
+    int mid = (l + r) >> 1;
+    int sum = T[T[y].l].sum - T[T[x].l].sum;
+    if(sum >= k) return query(l, mid, T[x].l, T[y].l, k);
+    return query(mid + 1, r, T[x].r, T[y].r, k - sum);
+}
+\end{lstlisting}
+
+\subsection{Trie 树 （字典树）}
+
+\begin{lstlisting}[language=C++]
+int trie[400001][26];
+int tot, sum[400001];
+char s[11];
+void ist(){
+    int ls = strlen(s);
+    int root = 0;
+    for(int i = 0; i < ls; ++i){
+        int id = s[i] - 'a';
+        if(!trie[root][id]){
+            ++tot;
+            trie[root][id] = tot;
+        }
+        ++sum[trie[root][id]];
+        root = trie[root][id];
+    }
+    return ;
+}
+
+int src(){
+    int root = 0;
+    int ls = strlen(s);
+    for(int i = 0; i < ls; ++i){
+        int id = s[i] - 'a';
+        if(!trie[root][id])
+            return 0;
+        root = trie[root][id];
+    }
+    return sum[root];
+}
+\end{lstlisting}
+
+\subsection{RMQ 问题}
+
+\begin{lstlisting}[language=C++]
+int n, logn, bs2[maxn], pos[maxn][20];
+ll a[maxn], mx[maxn][20];
+void RMQ_Init() {
+    logn = int(ceil(log2(n)) + eps);
+    int bs = 1, num = 1;
+    for(int i = 1; i <= n; ++i) {
+        mx[i][0] = a[i];
+        pos[i][0] = i;
+        if((num << 1) <= i) {
+            ++bs;
+            num <<= 1;
+        }
+        bs2[i] = bs - 1;
+    }
+    for(int i = 1; i <= logn; ++i) {
+        for(int j = 1; j + (1 << i) - 1 <= n; ++j) {
+            if(mx[j][i - 1] > mx[j + (1 << (i - 1))][i - 1]) {
+                mx[j][i] = mx[j][i - 1];
+                pos[j][i] = pos[j][i - 1];
+            } else {
+                mx[j][i] = mx[j + (1 << (i - 1))][i - 1];
+                pos[j][i] = pos[j + (1 << (i - 1))][i - 1];
+            }
+        }
+    }
+}
+ll Qmx; int Qpos;
+void Query(int lf, int rt) {
+    int bs = bs2[rt - lf + 1];
+    if(mx[lf][bs] > mx[rt - (1 << bs) + 1][bs]) {
+        Qmx = mx[lf][bs];
+        Qpos = pos[lf][bs];
+    } else {
+        Qmx = mx[rt - (1 << bs) + 1][bs];
+        Qpos = pos[rt - (1 << bs) + 1][bs];
+    }
+}
+\end{lstlisting}
+
+\subsection{树链剖分（轻重链剖分） + 线段树维护链上信息}
+
+Heavy-light Decomposition ：HLD
+
+边剖分可以将权赋给一条边上 dep 更大的那个节点，转化成点权问题。
+
+最后 x 和 y 在同一个重链的时候，直接 $update(pos[x] + 1 ,  pos[y], 1,  maxn, 1)$
+
+注意是 $pos[x] + 1$.
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+struct Edge {
+    int to, nxt;
+    int v;
+    Edge(int to = 0, int nxt = 0, int v = 0): to(to), nxt(nxt), v(v){}
+} e[maxn << 1];
+int head[maxn], tot;
+void init(){
+    memset(head, -1, sizeof(head));
+    tot = 0;
+}
+void addEdge(int x, int y, int z){
+    e[tot] = Edge(y, head[x], z);
+    head[x] = tot++;
+}
+
+int rk[maxn]; // dfs order to original order
+
+struct TreeChain {
+    int fa, d, sz;
+    int hs; // heavy son
+    int tp; // top of heavy link
+    int id; // original order to dfs order
+    TreeChain(){
+        hs = 0;
+    }
+} tc[maxn];
+int tcc; // Tree Chain dfs order
+void dfs1(int x, int y, int d){
+    TreeChain& now = tc[x];
+    now.sz = 1; now.fa = y;
+    now.d = d;
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y) continue;
+        dfs1(to, x, d + 1);
+        now.sz += tc[to].sz;
+        int hs = now.hs;
+        if(hs == 0 || tc[hs].sz < tc[to].sz)
+            now.hs = to;
+    }
+}
+void dfs2(int x, int y, int z){
+    TreeChain& now = tc[x];
+    now.tp = z; now.id = tcc;
+    rk[tcc++] = x;
+    int hs = now.hs;
+    if(hs == 0) return ;
+    dfs2(hs, x, z);
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y || to == hs) continue;
+        dfs2(to, x, to);
+    }
+}
+void TreeChainPartition(int root){
+    tcc = 1;
+    memset(tc, 0, sizeof(tc));
+    dfs1(root, -1, 0);
+    dfs2(root, -1, root);
+}
+\end{lstlisting}
+
+\subsubsection{树链剖分维护软件依赖关系}
+
+给你一棵树，有两种操作：
+
+把一个节点变为 1，把一个节点变为 0
+
+如果一个节点变为 1，那么他的所有祖先节点都变为 1.
+
+如果一个节点变为 0，那么他的所有后代节点都变为 0.
+
+对于每一个操作，输出发生改变的节点数量。
+
+
+\begin{lstlisting}[language=C++]
+const int maxn = 3e5 + 3;
+struct Edge{
+    int to, nxt;
+    Edge(int to = 0, int nxt = 0): to(to), nxt(nxt){}
+} e[maxn << 1];
+int head[maxn], tot;
+void init(){
+    memset(head, -1, sizeof(head));
+    tot = 0;
+}
+void addEdge(int x, int y){
+    e[tot] = Edge(y, head[x]);
+    head[x] = tot++;
+}
+
+int rk[maxn]; // dfs order to original order
+
+struct TreeChain{
+    int fa, d, sz;
+    int hs; // heavy son
+    int tp; // top of heavy link
+    int id; // original order to dfs order
+    TreeChain(){
+        hs = -1;
+    }
+} tc[maxn];
+int tcc; // Tree Chain dfs order
+void dfs1(int x, int y, int d){
+    TreeChain& now = tc[x];
+    now.sz = 1; now.fa = y;
+    now.d = d;
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y) continue;
+        dfs1(to, x, d + 1);
+        now.sz += tc[to].sz;
+        int hs = now.hs;
+        if(hs == -1 || tc[hs].sz < tc[to].sz)
+            now.hs = to;
+    }
+}
+void dfs2(int x, int y, int z){
+    TreeChain& now = tc[x];
+    now.tp = z; now.id = tcc;
+    rk[tcc++] = x;
+    int hs = now.hs;
+    if(hs == -1) return ;
+    dfs2(hs, x, z);
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y || to == hs) continue;
+        dfs2(to, x, to);
+    }
+}
+void TreeChainPartition(int root){
+    tcc = 1;
+    dfs1(root, -1, 0);
+    dfs2(root, -1, root);
+}
+
+struct SegTree{
+    int l, r;
+    int ls, rs;
+    int sum, lazy;
+}st[maxn<<2];
+int stc = 0; // Segment Tree counting number
+int root; // root of Segment Tree
+void pushUp(int x){
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    now.sum = ls.sum + rs.sum;
+    now.l = ls.l;
+    now.r = rs.r;
+}
+void build(int lf, int rt, int x){
+    SegTree& now = st[x];
+    if(lf == rt){
+        now.ls = now.rs = now.lazy = -1;
+        now.l = now.r = lf;
+        return ;
+    }
+    int mid = (lf + rt)>>1;
+    now.ls = stc++; now.rs = stc++;
+    build(lf, mid, now.ls);
+    build(mid + 1, rt, now.rs);
+    pushUp(x);
+}
+void pushDown(int x){
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    ls.sum = now.lazy*(ls.r - ls.l + 1);
+    rs.sum = now.lazy*(rs.r - rs.l + 1);
+    ls.lazy = now.lazy;
+    rs.lazy = now.lazy;
+    now.lazy = -1;
+}
+void update(int lf, int rt, int c, int x){
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt){
+        now.sum = c*(now.r - now.l + 1);
+        now.lazy = c;
+        return ;
+    }
+    if(now.lazy != -1) pushDown(x);
+    int mid = (now.l + now.r)>>1;
+    if(lf <= mid) update(lf, rt, c, now.ls);
+    if(rt > mid) update(lf, rt, c, now.rs);
+    pushUp(x);
+}
+int query(int lf, int rt, int x){
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) return now.sum;
+    if(now.lazy != -1) pushDown(x);
+    int ret = 0, mid = (now.l + now.r)>>1;
+    if(lf <= mid) ret += query(lf, rt, now.ls);
+    if(rt > mid) ret += query(lf, rt, now.rs);
+    return ret;
+}
+
+int install(int x){
+    int ret = 0, y = tc[x].tp;
+    while(y != 0){
+        int lf = tc[y].id, rt = tc[x].id;
+        ret += rt - lf + 1 - query(lf, rt, root);
+        update(lf, rt, 1, root);
+        x = tc[y].fa;
+        y = tc[x].tp;
+    }
+    int lf = tc[y].id, rt = tc[x].id;
+    ret += rt - lf + 1 - query(lf, rt, root);
+    update(lf, rt, 1, root);
+    return ret;
+}
+
+int uninstall(int x){
+    int lf = tc[x].id, rt = tc[x].id + tc[x].sz - 1;
+    int ret = query(lf, rt, root);
+    update(lf, rt, 0, root);
+    return ret;
+}
+char s[15];
+int main(){
+    init();
+    int n; scanf("%d", &n);
+    for(int i = 1; i < n; ++i){
+        int x; scanf("%d", &x);
+        addEdge(x, i);
+        addEdge(i, x);
+    }
+    TreeChainPartition(0);
+    root = stc++;
+    build(1, n, root);
+    int q; scanf("%d", &q);
+    while(q--){
+        int x; scanf("%s %d", s, &x);
+        if(s[0] == 'i') printf("%d\n", install(x));
+        else printf("%d\n", uninstall(x));
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{边权问题}
+
+给出一棵树，每条边编号 $[1, n - 1]$ 有权值，可修改第i条边的权值，支持询问从节点 x 到节点 y 的路径上的最大边权。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+int ea[maxn], eb[maxn], ec[maxn];
+struct Edge{
+    int to, nxt;
+    int v;
+    Edge(int to = 0, int nxt = 0, int v = 0): to(to), nxt(nxt), v(v){}
+}e[maxn<<1];
+int head[maxn], tot;
+void init(){
+    memset(head, -1, sizeof(head));
+    tot = 0;
+}
+void addEdge(int x, int y, int z){
+    e[tot] = Edge(y, head[x], z);
+    head[x] = tot++;
+}
+
+int rk[maxn]; // dfs order to original order
+
+struct TreeChain{
+    int fa, d, sz;
+    int hs; // heavy son
+    int tp; // top of heavy link
+    int id; // original order to dfs order
+    TreeChain(){
+        hs = 0;
+    }
+}tc[maxn];
+int tcc; // Tree Chain dfs order
+void dfs1(int x, int y, int d){
+    TreeChain& now = tc[x];
+    now.sz = 1; now.fa = y;
+    now.d = d;
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y) continue;
+        dfs1(to, x, d + 1);
+        now.sz += tc[to].sz;
+        int hs = now.hs;
+        if(hs == 0 || tc[hs].sz < tc[to].sz)
+            now.hs = to;
+    }
+}
+void dfs2(int x, int y, int z){
+    TreeChain& now = tc[x];
+    now.tp = z; now.id = tcc;
+    rk[tcc++] = x;
+    int hs = now.hs;
+    if(hs == 0) return ;
+    dfs2(hs, x, z);
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y || to == hs) continue;
+        dfs2(to, x, to);
+    }
+}
+void TreeChainPartition(int root){
+    tcc = 1;
+    memset(tc, 0, sizeof(tc));
+    dfs1(root, -1, 0);
+    dfs2(root, -1, root);
+}
+
+struct SegTree{
+    int l, r;
+    int ls, rs;
+    int mx;
+}st[maxn<<2];
+int stc = 0; // Segment Tree counting number
+int root; // root of Segment Tree
+void pushUp(int x){
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    now.mx = max(ls.mx, rs.mx);
+    now.l = ls.l;
+    now.r = rs.r;
+}
+void build(int lf, int rt, int x){
+    SegTree& now = st[x];
+    if(lf == rt){
+        now.ls = now.rs = -1;
+        now.l = now.r = lf;
+        now.mx = -0x3f3f3f3f;
+        return ;
+    }
+    int mid = (lf + rt)>>1;
+    now.ls = stc++; now.rs = stc++;
+    build(lf, mid, now.ls);
+    build(mid + 1, rt, now.rs);
+    pushUp(x);
+}
+void update(int pos, int c, int x){
+    SegTree& now = st[x];
+    if(now.l == now.r){
+        now.mx = c;
+        return ;
+    }
+    int mid = (now.l + now.r)>>1;
+    if(pos <= mid) update(pos, c, now.ls);
+    if(pos > mid) update(pos, c, now.rs);
+    pushUp(x);
+}
+int query(int lf, int rt, int x){
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) return now.mx;
+    int ret = -0x3f3f3f3f, mid = (now.l + now.r)>>1;
+    if(lf <= mid) ret = max(ret, query(lf, rt, now.ls));
+    if(rt > mid) ret = max(ret, query(lf, rt, now.rs));
+    return ret;
+}
+
+int QUERY(int x, int y){
+    int ret = -0x3f3f3f3f;
+    int tx = tc[x].tp, ty = tc[y].tp;
+    while(tx != ty){
+        if(tc[tx].d < tc[ty].d){
+            swap(tx, ty);
+            swap(x, y);
+        }
+        ret = max(ret, query(tc[tx].id, tc[x].id, root));
+        x = tc[tx].fa; tx = tc[x].tp;
+    }
+    if(x == y) return ret;
+    if(tc[x].d > tc[y].d) swap(x, y);
+    ret = max(ret, query(tc[tc[x].hs].id, tc[y].id, root));
+    return ret;
+}
+void CHANGE(int x, int y){
+    update(tc[eb[x]].id, y, root);
+}
+char s[15];
+
+int main(){
+    int t; scanf("%d", &t);
+    while(t--){
+        init();
+        int n; scanf("%d", &n);
+        for(int i = 1; i < n; ++i){
+            int a, b, c; scanf("%d%d%d", &a, &b, &c);
+            addEdge(a, b, c);
+            addEdge(b, a, c);
+            ea[i] = a, eb[i] = b, ec[i] = c;
+        }
+        TreeChainPartition(1);
+        stc = 0;
+        root = stc++;
+        build(1, n, root);
+        for(int i = 1; i < n; ++i){
+            if(tc[ea[i]].d > tc[eb[i]].d) swap(ea[i], eb[i]);
+            update(tc[eb[i]].id, ec[i], root);
+        }
+        while(scanf("%s", s) != EOF){
+            if(s[0] == 'D') break;
+            int x, y; scanf("%d %d", &x, &y);
+            if(s[0] == 'Q') printf("%d\n", QUERY(x, y));
+            else CHANGE(x, y);
+        }
+        if(t) puts("");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{点权问题}
+
+给出一棵树，每个点编号 $[1, n]$ 有权值，可修改第 i 个点的权值，支持询问从节点 x 到节点 y 的路径上的最大点权。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 3e4 + 5;
+const ll inf = 0x3f3f3f3f3f3f3f3f;
+
+struct Edge{
+    int to, nxt;
+    int v;
+    Edge(int to = 0, int nxt = 0, int v = 0):to(to), nxt(nxt), v(v){}
+}e[maxn<<1];
+int head[maxn], tot;
+void init(){
+    memset(head, -1, sizeof(head));
+    tot = 0;
+}
+void addEdge(int x, int y, int z){
+    e[tot] = Edge(y, head[x], z);
+    head[x] = tot++;
+}
+
+int rk[maxn];
+
+struct TreeChain{
+    int fa, d, sz;
+    int hs, tp, id;
+    TreeChain(){
+        hs = 0;
+    }
+}tc[maxn];
+int tcc;
+void dfs1(int x, int y, int d){
+    TreeChain& now = tc[x];
+    now.sz = 1, now.fa = y;
+    now.d = d;
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y) continue;
+        dfs1(to, x, d + 1);
+        now.sz += tc[to].sz;
+        int hs = now.hs;
+        if(hs == 0 || tc[hs].sz < tc[to].sz) now.hs = to;
+    }
+}
+
+void dfs2(int x, int y, int z){
+    TreeChain& now = tc[x];
+    now.tp = z; now.id = tcc;
+    rk[tcc++] = x;
+    int hs = now.hs;
+    if(hs == 0) return ;
+    dfs2(hs, x, z);
+    for(int i = head[x]; i != -1; i = e[i].nxt){
+        int to = e[i].to;
+        if(to == y || to == hs) continue;
+        dfs2(to, x, to);
+    }
+}
+
+void TreeChainPartition(int root){
+    tcc = 1;
+    memset(tc, 0, sizeof(tc));
+    dfs1(root, -1, 0);
+    dfs2(root, -1, root);
+}
+
+struct SegTree{
+    int l, r;
+    int ls, rs;
+    ll mx, sum;
+}st[maxn<<2];
+
+int stc = 0;
+int root;
+
+ll a[maxn];
+
+void pushUp(int x){
+    SegTree& now = st[x];
+    SegTree& ls = st[now.ls];
+    SegTree& rs = st[now.rs];
+    now.mx = max(ls.mx, rs.mx);
+    now.sum = ls.sum + rs.sum;
+}
+
+void build(int x, int lf, int rt){
+    SegTree& now = st[x];
+    now.l = lf, now.r = rt;
+    if(lf == rt){
+        now.ls = now.rs = -1;
+        now.mx = -inf;
+        now.sum = 0;
+        return ;
+    }
+    int mid = (lf + rt)>>1;
+    now.ls = stc++; now.rs = stc++;
+    build(now.ls, lf, mid);
+    build(now.rs, mid + 1, rt);
+    pushUp(x);
+}
+
+void update(int x, int pos, ll val){
+    SegTree& now = st[x];
+    if(now.l == now.r){
+        now.mx = val;
+        now.sum = val;
+        return ;
+    }
+    int mid = (now.l + now.r)>>1;
+    if(pos <= mid) update(now.ls, pos, val);
+    else update(now.rs, pos, val);
+    pushUp(x);
+}
+
+ll queryMax(int x, int lf, int rt){
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) return now.mx;
+    ll ret = -inf; int mid = (now.l + now.r)>>1;
+    if(lf <= mid) ret = max(ret, queryMax(now.ls, lf, rt));
+    if(rt > mid) ret = max(ret, queryMax(now.rs, lf, rt));
+    return ret;
+}
+
+ll querySum(int x, int lf, int rt){
+    SegTree& now = st[x];
+    if(lf <= now.l && now.r <= rt) return now.sum;
+    ll ret = 0; int mid = (now.l + now.r)>>1;
+    if(lf <= mid) ret += querySum(now.ls, lf, rt);
+    if(rt > mid) ret += querySum(now.rs, lf, rt);
+    return ret;
+}
+char s[15];
+
+ll QMAX(int x, int y){
+    ll ret = -inf;
+    int tx = tc[x].tp, ty = tc[y].tp;
+    while(tx != ty){
+        if(tc[tx].d < tc[ty].d){
+            swap(tx, ty);
+            swap(x, y);
+        }
+        ret = max(ret, queryMax(root, tc[tx].id, tc[x].id));
+        x = tc[tx].fa; tx = tc[x].tp;
+    }
+    if(tc[x].d > tc[y].d) swap(x, y);
+    ret = max(ret, queryMax(root, tc[x].id, tc[y].id));
+    return ret;
+}
+
+ll QSUM(int x, int y){
+    ll ret = 0;
+    int tx = tc[x].tp, ty = tc[y].tp;
+    while(tx != ty){
+        if(tc[tx].d < tc[ty].d){
+            swap(tx, ty);
+            swap(x, y);
+        }
+        ret += querySum(root, tc[tx].id, tc[x].id);
+        x = tc[tx].fa; tx = tc[x].tp;
+    }
+    if(tc[x].d > tc[y].d) swap(x, y);
+    ret += querySum(root, tc[x].id, tc[y].id);
+    return ret;
+}
+
+void CHANGE(int x, ll y){
+    update(root, tc[x].id, y);
+}
+
+int main(){
+    init();
+    int n; scanf("%d", &n);
+    for(int i = 1; i < n; ++i){
+        int u, v;
+        scanf("%d%d", &u, &v);
+        addEdge(u, v, 0);
+        addEdge(v, u, 0);
+    }
+    TreeChainPartition(1);
+    stc = 0;
+    root = stc++;
+    build(root, 1, n);
+    for(int i = 1; i <= n; ++i){
+        int x; scanf("%d", &x);
+        update(root, tc[i].id, x);
+    }
+    int q; scanf("%d", &q);
+    while(q--){
+        scanf("%s", s);
+        int x, y; scanf("%d%d", &x, &y);
+        if(s[1] == 'M'){
+            ll ans = QMAX(x, y);
+            printf("%lld\n", ans);
+        }else if(s[1] == 'S'){
+            ll ans = QSUM(x, y);
+            printf("%lld\n", ans);
+        }else CHANGE(x, (ll)y);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{带权并查集}
+
+\begin{lstlisting}[language=C++]
+int fa[maxn], r[maxn];
+int findfa(int x){
+    if(x != fa[x]){
+        int fx = fa[x];
+        fa[x] = findfa(fx);
+        r[x] = (r[fx] + r[x])%3;
+    }
+    return fa[x];
+}
+void mrg(int x, int y, int d){
+    int fx = findfa(x), fy = findfa(y);
+    if(fx == fy) return ;
+    fa[fx] = fy;
+    r[fx] = (d + r[y] - r[x] + 3)%3;
+}
+
+int fa[maxn], w[maxn];
+int findfa(int x) {
+    if(fa[x] != x) {
+        int fx = fa[x];
+        fa[x] = findfa(fx);
+        w[x] += w[fx];
+    }
+    return fa[x];
+}
+bool mrg(int x, int y, int z) {
+    int fx = findfa(x);
+    int fy = findfa(y);
+    if(fx != fy) {
+        fa[fy] = fx;
+        w[fy] = z + w[x] - w[y];
+    } else {
+        if(w[x] + z != w[y]) return false;
+    }
+    return true;
+}
+\end{lstlisting}
+
+\subsection{二维树状数组}
+
+\subsubsection{单点修改 + 区间查询}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e3 + 5;
+#define lowbit(x) (x&(-x))
+int tree[maxn][maxn];
+void update(int x, int y, int z){
+    for(int i = x; i < maxn; i += lowbit(i))
+        for(int j = y; j < maxn; j += lowbit(j))
+            tree[i][j] += z;
+}
+int query(int x, int y){
+    int ret = 0;
+    for(int i = x; i > 0; i -= lowbit(i))
+        for(int j = y; j > 0; j -= lowbit(j))
+            ret += tree[i][j];
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{区间修改 + 单点查询}
+
+二维前缀和：
+
+sum[i][j] = sum[i − 1][j] + sum[i][j − 1] − sum[i − 1][j − 1] + a[i][j]
+
+那么我们可以令差分数组d[i][j] 表示 a[i][j] 与 a[i − 1][j] + a[i][j − 1] − a[i − 1][j − 1] 的差。
+
+我们在差分数组d[][]上建树状数组，便可以维护区间修改的值，并支持单点查询
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e3 + 5;
+#define lowbit(x) (x&(-x))
+int tree[maxn][maxn];
+void update(int x, int y, int z){
+    for(int i = x; i < maxn; i += lowbit(i))
+        for(int j = y; j < maxn; j += lowbit(j))
+            tree[i][j] += z;
+}
+void rangeUpdate(int xa, int ya, int xb, int yb, int z){
+    update(xa, ya, z);
+    update(xa, yb + 1, -z);
+    update(xb + 1, ya, -z);
+    update(xb + 1, yb + 1, z);
+}
+int query(int x, int y){
+    int ret = 0;
+    for(int i = x; i > 0; i -= lowbit(i))
+        for(int j = y; j > 0; j -= lowbit(j))
+            ret += tree[i][j];
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{区间修改 + 区间查询（待补）}
+
+\subsection{离线分治算法}
+
+\subsubsection{CDQ分治 三维偏序（陌上花开）}
+
+有n朵花，每朵花有三个属性：花形(s)、颜色(c)、气味(m)，由三个整数表示。
+
+现要对每朵花评级，一朵花的级别是它拥有的美丽能超过的花的数量。定义一朵花 A 比另一朵花 B 要美丽，当且仅当Sa >= Sb, Ca >= Cb, Ma >= Mb。显然，两朵花可能有同样的属性。
+
+需要统计出评出每个等级的花的数量。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 4e5 + 5;
+struct node{
+    int s, c, m;
+    int id;
+    int num, ans;
+    bool operator < (const node& nd) const{
+        if(s == nd.s){
+            if(c == nd.c) return m < nd.m;
+            return c < nd.c;
+        }
+        return s < nd.s;
+    }
+    bool operator == (const node& nd) const{
+        if(s != nd.s) return false;
+        if(c != nd.c) return false;
+        if(m != nd.m) return false;
+        return true;
+    }
+}a[maxn], b[maxn], c[maxn];
+int cnt[maxn];
+#define lowbit(x) (x&(-x))
+int tree[maxn];
+void update(int x, int val){
+    while(x < maxn){
+        tree[x] += val;
+        x += lowbit(x);
+    }
+}
+int query(int x){
+    int ret = 0;
+    while(x){
+        ret += tree[x];
+        x -= lowbit(x);
+    }
+    return ret;
+}
+void cdq(int lf, int rt){
+    if(lf == rt){
+        b[lf].ans = b[lf].num - 1;
+        return ;
+    }
+    int mid = (lf + rt)>>1;
+    cdq(lf, mid); cdq(mid + 1, rt);
+    int p1 = lf, p2 = mid + 1;
+    int p3 = lf;
+    while(p1 <= mid && p2 <= rt){
+        if(b[p1].c <= b[p2].c){
+            update(b[p1].m, b[p1].num);
+            c[p3++] = b[p1++];
+        }else{
+            b[p2].ans += query(b[p2].m);
+            c[p3++] = b[p2++];
+        }
+    }
+    while(p1 <= mid){
+        update(b[p1].m, b[p1].num);
+        c[p3++] = b[p1++];
+    }
+    while(p2 <= rt){
+        b[p2].ans += query(b[p2].m);
+        c[p3++] = b[p2++];
+    }
+    for(int i = lf; i <= mid; ++i) update(b[i].m, -b[i].num);
+    for(int i = lf; i <= rt; ++i) b[i] = c[i];
+}
+int main(){
+    int n, k; scanf("%d%d", &n, &k);
+    for(int i = 1; i <= n; ++i){
+        scanf("%d%d%d", &a[i].s, &a[i].c, &a[i].m);
+        a[i].id = i;
+    }
+    sort(a + 1, a + n + 1);
+    int tot = 0;
+    b[++tot] = a[1];
+    b[tot].ans = 0; b[tot].num = 1;
+    for(int i = 2; i <= n; ++i){
+        if(a[i] == a[i - 1]) ++b[tot].num;
+        else{
+            b[++tot] = a[i];
+            b[tot].ans = 0;
+            b[tot].num = 1;
+        }
+    }
+    cdq(1, tot);
+    for(int i = 1; i <= tot; ++i) cnt[b[i].ans] += b[i].num;
+    for(int i = 0; i < n; ++i) printf("%d\n", cnt[i]);
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{基于值域的整体分治算法}
+
+求解区间第 k 小
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e5 + 5;
+struct node {
+    int op, x, y, z;
+} a[maxn], b[maxn], c[maxn];
+int tree[maxn], ans[maxn], n, m;
+#define lowbit(x) (x&(-x))
+void add(int x, int y) {
+    while(x <= n) {
+        tree[x] += y;
+        x += lowbit(x);
+    }
+}
+int query(int x) {
+    int ret = 0;
+    while(x) {
+        ret += tree[x];
+        x -= lowbit(x);
+    }
+    return ret;
+}
+void solve(int mi, int mx, int lf, int rt) {
+    if(lf > rt) return ;
+    if(mi == mx) {
+        for(int i = lf; i <= rt; ++i) ans[a[i].op] = mi;
+        return ;
+    }
+    int mid = (mi + mx) >> 1;
+    int p1 = 0, p2 = 0;
+    for(int i = lf; i <= rt; ++i) {
+        if(a[i].op == 0) {
+            if(a[i].y <= mid) {
+                add(a[i].x, 1);
+                b[++p1] = a[i];
+            } else {
+                c[++p2] = a[i];
+            }
+        } else {
+            int num = query(a[i].y) - query(a[i].x - 1);
+            if(num >= a[i].z) {
+                b[++p1] = a[i];
+            } else {
+                a[i].z -= num;
+                c[++p2] = a[i];
+            }
+        }
+    }
+    for(int i = lf; i <= rt; ++i) {
+        if(a[i].op == 0 && a[i].y <= mid) add(a[i].x, -1);
+    }
+    for(int i = 1; i <= p1; ++i) a[lf + i - 1] = b[i];
+    for(int i = 1; i <= p2; ++i) a[lf + p1 + i - 1] = c[i];
+    solve(mi, mid, lf, lf + p1 - 1);
+    solve(mid + 1, mx, lf + p1, rt);
+}
+
+int main(){
+    scanf("%d%d", &n, &m);
+    int tot = 0;
+    for(int i = 1; i <= n; ++i) {
+        a[++tot].op = 0;
+        a[tot].x = i;
+        scanf("%d", &a[tot].y);
+    }
+    for(int i = 1; i <= m; ++i) {
+        a[++tot].op = i;
+        scanf("%d%d%d", &a[tot].x, &a[tot].y, &a[tot].z);
+    }
+    solve(-inf, inf, 1, tot);
+    for(int i = 1; i <= m; ++i) printf("%d\n", ans[i]);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Splay}
+
+\subsubsection{基础用法}
+
+第 1 行：1 个正整数 n，表示操作数量， $100 \le n \le 200,000$
+
+第 2..n + 1 行：可能包含下面 3 种规则：
+
+1 个字母 'I'，紧接着1个数字 k，表示插入一个数字 k 到树中，$1 \le k \le 1,000,000,000$ ，保证每个 k 都不相同
+
+1 个字母 'Q'，紧接着1个数字 k。表示询问树中不超过 k 的最大数字
+
+1 个字母 'D'，紧接着2个数字 a, b ，表示删除树中在区间 $[a, b]$ 的数。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e5 + 5;
+// 注意inf是否已经足够大
+const int inf = 0x3f3f3f3f;
+struct SplayTree {
+    int son[2];
+    int fa, key, sz, cnt;
+} S[maxn];
+int root, tot;
+void init() {
+    root = tot = 0;
+    S[0].son[0] = S[0].son[1] = 0;
+    S[0].fa = S[0].key = 0;
+    S[0].key = S[0].cnt = 0;
+}
+void PushUp(int x) {
+    if(x == 0) return ;
+    SplayTree& now = S[x];
+    now.sz = now.cnt;
+    if(now.son[0]) {
+        SplayTree& ls = S[now.son[0]];
+        now.sz += ls.sz;
+    }
+    if(now.son[1]) {
+        SplayTree& rs = S[now.son[1]];
+        now.sz += rs.sz;
+    }
+}
+int GetId(int x) {
+    if(S[S[x].fa].son[1] == x) return 1;
+    return 0;
+}
+void SetSon(int x, int fa, int y) {
+    if(x) S[x].fa = fa;
+    if(fa == 0) {
+        root = x;
+        return ;
+    }
+    S[fa].son[y] = x;
+    PushUp(fa);
+}
+void Rotate(int x) {
+    int f = S[x].fa, ff = S[f].fa;
+    int sx = GetId(x), sf = GetId(f);
+    int p = S[x].son[sx ^ 1];
+    SetSon(p, f, sx);
+    SetSon(x, ff, sf);
+    SetSon(f, x, sx ^ 1);
+    PushUp(f); PushUp(x);
+}
+void Splay(int x, int y) {
+    while(S[x].fa != y) {
+        int f = S[x].fa, ff = S[f].fa;
+        if(ff != y) {
+            if(GetId(x) == GetId(f)) Rotate(f);
+            else Rotate(x);
+        }
+        Rotate(x);
+    }
+    if(y == 0) root = x;
+}
+int Find(int x, int val) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    if(val < now.key) return Find(now.son[0], val);
+    if(val > now.key) return Find(now.son[1], val);
+    Splay(x, 0);
+    return x;
+}
+void Ist(int& x, int& hot, int val, int fa) {
+    if(x == 0) {
+        x = ++tot; hot = x;
+        SplayTree& now = S[x];
+        now.key = val, now.fa = fa;
+        now.son[0] = now.son[1] = 0;
+        now.sz = now.cnt = 1;
+        return ;
+    }
+    SplayTree& now = S[x];
+    if(val == now.key) {
+        ++now.cnt;
+        hot = x;
+    } else {
+        if(val < now.key) Ist(now.son[0], hot, val, x);
+        else Ist(now.son[1], hot, val, x);
+    }
+    PushUp(x);
+}
+void Insert(int val ) {
+    int hot;
+    Ist(root, hot, val, 0);
+    Splay(hot, 0);
+}
+void DelRoot() {
+    SplayTree& now = S[root];
+    if(now.cnt > 1) {
+        --now.cnt;
+        --now.sz;
+        return ;
+    }
+    if(now.son[0] == 0) {
+        S[now.son[1]].fa = 0;
+        root = now.son[1];
+        return ;
+    }
+    int cur = S[root].son[0];
+    while(S[cur].son[1]) cur = S[cur].son[1];
+    Splay(cur, root);
+    S[cur].son[1] = S[root].son[1];
+    root = cur; S[cur].fa = 0;
+    if(S[root].son[1]) S[S[root].son[1]].fa = root;
+    PushUp(root);
+}
+void Del(int val) {
+    int k = Find(root, val);
+    if(k) DelRoot();
+}
+int Kth(int x, int k) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    int lt = S[now.son[0]].sz;
+    int le = lt + now.cnt;
+    if(k <= lt) return Kth(now.son[0], k);
+    if(k > le) return Kth(now.son[1], k - le);
+    Splay(x, 0);
+    return x;
+}
+int Rank(int x, int val) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    int lt = S[now.son[0]].sz;
+    int le = lt + now.cnt;
+    if(now.key > val) return Rank(now.son[0], val);
+    if(now.key < val) return le + Rank(now.son[1], val);
+    return lt + 1;
+}
+int Prec(int x, int val) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    if(val <= now.key) return Prec(now.son[0], val);
+    int ret = Prec(now.son[1], val);
+    if(ret == 0) ret = x;
+    return ret;
+}
+int Succ(int x, int val) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    if(val >= now.key) return Succ(now.son[1], val);
+    int ret = Succ(now.son[0], val);
+    if(ret == 0) ret = x;
+    return ret;
+}
+void DelSec(int a, int b) {
+    Insert(a); Insert(b);
+    int lst = Prec(root, a);
+    int nxt = Succ(root, b);
+    Splay(lst, 0); Splay(nxt, lst);
+    S[nxt].son[0] = 0;
+}
+char s[55];
+
+inline int read() {
+    int ret = 0;
+    char ch = getchar();
+    while(ch < '0' || ch > '9') ch = getchar();
+    while(ch >= '0' && ch <= '9'){
+        ret = ret*10 + ch - '0';
+        ch = getchar();
+    }
+    return ret;
+}
+
+int main(){
+    init();
+    Insert(-inf);
+    Insert(inf);
+
+    int n = read();
+    for(int cs = 1; cs <= n; ++cs) {
+        scanf("%s", s);
+        if(s[0] == 'I') {
+            int k = read();
+            Insert(k);
+        } else if(s[0] == 'Q') {
+            int k = read();
+            int id = Find(root, k);
+            if(id){
+                printf("%d\n", k);
+                continue;
+            }
+            id = Prec(root, k);
+            printf("%d\n", S[id].key);
+        } else {
+            int a = read();
+            int b = read();
+            DelSec(a, b);
+        }
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{区间翻转}
+
+您需要维护一个序列，其中需要提供以下操作：
+
+翻转一个区间，例如原有序列是 $5, 4, 3, 2, 1$ ，翻转区间是 $[2, 4]$ 的话，结果是 $5, 2, 3, 4, 1$ 。
+
+第一行为 $n, m$
+
+n 表示初始序列有 n 个数，这个序列依次是 $1, 2, \cdots, n − 1, n$
+
+m 表示翻转操作次数。
+
+接下来 m 行每行两个数 $[l, r]$ ， 表示翻转区间 $[l, r]$，数据保证 $1 \le l \le r \le n$ 。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+const int inf = 0x3f3f3f3f;
+struct SplayTree {
+    int son[2];
+    int fa, key, sz;
+    int lazy;
+} S[maxn];
+int root, tot;
+void init() {
+    root = tot = 0;
+    S[0].son[0] = S[0].son[1] = 0;
+    S[0].fa = S[0].key = 0;
+    S[0].sz = S[0].lazy = 0;
+}
+int AddNode(int key, int fa) {
+    ++tot;
+    S[tot].son[0] = S[tot].son[1] = 0;
+    S[tot].fa = fa; S[tot].key = key;
+    S[tot].lazy = 0; S[tot].sz = 1;
+    return tot;
+}
+void PushUp(int x) {
+    if(x == 0) return ;
+    SplayTree& now = S[x];
+    SplayTree& ls = S[now.son[0]];
+    SplayTree& rs = S[now.son[1]];
+    now.sz = 1 + ls.sz + rs.sz;
+}
+int Build(int lf, int rt, int fa) {
+    if(lf > rt) return 0;
+    int mid = (lf + rt) >> 1;
+    int id = AddNode(mid, fa);
+    SplayTree& now = S[id];
+    now.son[0] = Build(lf, mid - 1, id);
+    now.son[1] = Build(mid + 1, rt, id);
+    PushUp(id);
+    return id;
+}
+int Judge(int x) {
+    if(S[S[x].fa].son[1] == x) return 1;
+    return 0;
+}
+void SetSon(int x, int fa, int id) {
+    if(x) S[x].fa = fa;
+    if(fa == 0) {
+        root = x;
+        return ;
+    }
+    S[fa].son[id] = x;
+    PushUp(fa);
+}
+void PushDown(int x) {
+    SplayTree& now = S[x];
+    if(now.lazy == 0) return ;
+    now.lazy = 0;
+    S[now.son[0]].lazy ^= 1;
+    S[now.son[1]].lazy ^= 1;
+    swap(now.son[0], now.son[1]);
+}
+void Rotate(int x) {
+    int f = S[x].fa, ff = S[f].fa;
+    int sx = Judge(x), sf = Judge(f);
+    int p = S[x].son[sx ^ 1];
+    SetSon(p, f, sx);
+    SetSon(x, ff, sf);
+    SetSon(f, x, sx ^ 1);
+    PushUp(f); PushUp(x);
+}
+void Splay(int x, int y) {
+    while(S[x].fa != y) {
+        int f = S[x].fa, ff = S[f].fa;
+        if(ff != y) {
+            if(Judge(x) == Judge(f)) Rotate(f);
+            else Rotate(x);
+        }
+        Rotate(x);
+    }
+    if(y == 0) root = x;
+}
+int Find(int x, int k) {
+    if(x == 0) return 0;
+    SplayTree& now = S[x];
+    PushDown(x);
+    int lt = S[now.son[0]].sz;
+    int le = lt + 1;
+    if(k <= lt) return Find(now.son[0], k);
+    if(k > le) return Find(now.son[1], k - le);
+    return x;
+}
+void Filp(int lf, int rt) {
+    int lst = Find(root, lf - 1 + 1);
+    int nxt = Find(root, rt + 1 + 1);
+    Splay(lst, 0);
+    Splay(nxt, lst);
+    SplayTree& now = S[S[nxt].son[0]];
+    now.lazy ^= 1;
+}
+int n, m, cnt = 0;
+void solve(int x) {
+    if(x == 0) return ;
+    SplayTree& now = S[x];
+    PushDown(x);
+    if(now.key > 0) solve(now.son[0]);
+    if(now.key > 0 && now.key < n + 1) {
+        if(++cnt > 1) printf(" ");
+        printf("%d", S[x].key);
+    }
+    if(now.key < n + 1) solve(now.son[1]);
+}
+int main(){
+    init();
+    scanf("%d%d", &n, &m);
+    root = Build(0, n + 1, 0);
+    for(int cm = 1; cm <= m; ++cm) {
+        int lf, rt; scanf("%d%d", &lf, &rt);
+        Filp(lf, rt);
+    }
+    solve(root); puts("");
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{区间加减，区间第 K 大}
+
+插入、区间加、区间减、区间第 k 大
+
+\begin{lstlisting}[language=C++]
+typedef long long ll;
+const int maxn = 1e5 + 5;
+const int inf = 0x3f3f3f3f;
+struct SplayTree {
+    int son[2], fa;
+    ll sz, cnt, key, lazy;
+    void pt() {
+        printf("Son: %d %d, Fa %d\n", son[0], son[1], fa);
+        printf("sz: %lld cnt: %lld key: %lld lazy %lld\n", sz, cnt, key, lazy);
+    }
+} S[maxn];
+int root, tot;
+void init() {
+    root = tot = 0;
+    S[0].son[0] = S[0].son[1] = S[0].fa = 0;
+    S[0].key = S[0].lazy = 0;
+    S[0].sz = S[0].cnt = 0;
+}
+void PushUp(int x) {
+    if(x == 0) return ;
+    SplayTree& now = S[x];
+    now.sz = now.cnt;
+    if(now.son[0]) {
+        SplayTree& ls = S[now.son[0]];
+        now.sz += ls.sz;
+    }
+    if(now.son[1]) {
+        SplayTree& rs = S[now.son[1]];
+        now.sz += rs.sz;
+    }
+}
+void PushDown(int x) {
+    if(x == 0) return ;
+    SplayTree& now = S[x];
+    if(now.lazy == 0) return ;
+    if(now.son[0]) {
+        SplayTree& ls = S[now.son[0]];
+        ls.key += now.lazy;
+        ls.lazy += now.lazy;
+    }
+    if(now.son[1]) {
+        SplayTree& rs = S[now.son[1]];
+        rs.key += now.lazy;
+        rs.lazy += now.lazy;
+    }
+    now.lazy = 0;
+}
+int Judge(int x) {
+    if(S[S[x].fa].son[1] == x) return 1;
+    return 0;
+}
+void SetSon(int x, int fa, int y) {
+    if(x) S[x].fa = fa;
+    if(fa == 0) {
+        root = x;
+        return ;
+    }
+    S[fa].son[y] = x;
+    PushUp(fa);
+}
+void Rotate(int x) {
+    int f = S[x].fa, ff = S[f].fa;
+    int sx = Judge(x), sf = Judge(f);
+    int p = S[x].son[sx ^ 1];
+    SetSon(p, f, sx);
+    SetSon(x, ff, sf);
+    SetSon(f, x, sx ^ 1);
+    PushUp(f); PushUp(x);
+}
+void Splay(int x, int y) {
+    while(S[x].fa != y) {
+        int f = S[x].fa, ff = S[f].fa;
+        if(ff != y) {
+            if(Judge(x) == Judge(f)) Rotate(f);
+            else Rotate(x);
+        }
+        Rotate(x);
+    }
+    if(y == 0) root = x;
+}
+void Ist(int& x, int& hot, ll val, int fa) {
+    if(x == 0) {
+        x = ++tot;
+        hot = x;
+        SplayTree& now = S[x];
+        now.key = val; now.fa = fa;
+        now.son[0] = now.son[1] = 0;
+        now.sz = now.cnt = 1; now.lazy = 0;
+        return ;
+    }
+    PushDown(x);
+    SplayTree& now = S[x];
+    if(val == now.key) {
+        ++now.cnt;
+        hot = x;
+    } else {
+        if(val < now.key) Ist(now.son[0], hot, val, x);
+        else Ist(now.son[1], hot, val, x);
+    }
+    PushUp(x);
+}
+void Insert(ll val) {
+    int hot;
+    Ist(root, hot, val, 0);
+    Splay(hot, 0);
+}
+int Kth(int x, int k) {
+    if(x == 0) return 0;
+    PushDown(x);
+    SplayTree& now = S[x];
+    ll lt = S[now.son[0]].sz;
+    ll le = lt + now.cnt;
+    if(k <= lt) return Kth(now.son[0], k);
+    if(k > le) return Kth(now.son[1], k - le);
+    Splay(x, 0);
+    return x;
+}
+int Succ(int x, ll val) {
+    if(x == 0) return 0;
+    PushDown(x);
+    SplayTree& now = S[x];
+    if(val >= now.key) return Succ(now.son[1], val);
+    int ret = Succ(now.son[0], val);
+    if(ret == 0) ret = x;
+    return ret;
+}
+void Update(ll val) {
+    if(root == 0) return ;
+    SplayTree& now = S[root];
+    now.key += val;
+    now.lazy += val;
+}
+ll mi, ans;
+void clr() {
+    int id = Succ(root, mi - 1LL);
+    if(id == 0) {
+        ans += S[root].sz;
+        root = 0;
+        return ;
+    }
+    Splay(id, 0);
+    ans += S[S[id].son[0]].sz;
+    S[id].son[0] = 0;
+    PushUp(id);
+}
+char opt[5];
+int main(){
+    int n; scanf("%d%lld", &n, &mi);
+    init(); ans = 0;
+    for(int cn = 1; cn <= n; ++cn) {
+        scanf("%s", opt);
+        if(opt[0] == 'I') {
+            ll k; scanf("%lld", &k);
+            if(k >= mi) Insert(k);
+        } else if(opt[0] == 'A') {
+            ll k; scanf("%lld", &k);
+            Update(k);
+        } else if(opt[0] == 'S') {
+            ll k; scanf("%lld", &k);
+            Update(-k);
+        } else {
+            int k; scanf("%d", &k);
+            int num = S[root].sz;
+            if(num < k) puts("-1");
+            else printf("%lld\n", S[Kth(root, num - k + 1)].key);
+        }
+        clr();
+    }
+    printf("%lld\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Link-Cut Tree}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 3e5 + 5;
+struct LCT {
+    int tp, st[maxn];
+    int fa[maxn], ch[maxn][2];
+    bool lazy[maxn];
+    int mx[maxn], val[maxn];
+    void init(int x, int y) {
+        fa[x] = ch[x][0] = ch[x][1] = 0;
+        lazy[x] = false;
+        mx[x] = x; val[x] = y;
+    }
+    bool is_root(int x) {
+        return ch[fa[x]][0] != x && ch[fa[x]][1] != x;
+    }
+    void push_up(int x) {
+        int lc = ch[x][0], rc = ch[x][1];
+        mx[x] = x;
+        if (val[mx[x]] < val[mx[lc]]) mx[x] = mx[lc];
+        if (val[mx[x]] < val[mx[rc]]) mx[x] = mx[rc];
+    }
+    void push_down(int x) {
+        if (!lazy[x]) return ;
+        int lc = ch[x][0], rc = ch[x][1];
+        lazy[x] = !lazy[x];
+        lazy[lc] = !lazy[lc];
+        lazy[rc] = !lazy[rc];
+        swap(ch[x][0], ch[x][1]);
+    }
+    void rotate(int x) {
+        int y = fa[x], z = fa[y], lc, rc;
+        if (ch[y][0] == x) lc = 0;
+        else lc = 1;
+        rc = lc ^ 1;
+        if (!is_root(y)) {
+            if (ch[z][0] == y) ch[z][0] = x;
+            else ch[z][1] = x;
+        }
+        fa[x] = z; fa[y] = x; fa[ch[x][rc]] = y;
+        ch[y][lc] = ch[x][rc]; ch[x][rc] = y;
+        push_up(y); push_up(x);
+    }
+    void splay(int x) {
+        tp = 0; st[tp++] = x;
+        for (int i = x; !is_root(i); i = fa[i]) st[tp++] = fa[i];
+        while (tp > 0) push_down(st[--tp]);
+        while (!is_root(x)) {
+            int y = fa[x], z = fa[y];
+            if (!is_root(y)) {
+                if ((ch[y][0] == x) == (ch[z][0] == y)) rotate(x);
+                else rotate(y);
+            }
+            rotate(x);
+        }
+    }
+    void access(int x) {
+        for (int t = 0; x != 0; t = x, x = fa[x]) {
+            splay(x); ch[x][1] = t; push_up(x);
+        }
+    }
+    void make_root(int x) {
+        access(x); splay(x); lazy[x] = !lazy[x];
+    }
+    void link(int x, int y) {
+        make_root(x); fa[x] = y;
+    }
+    void cut(int x, int y) {
+        make_root(x); access(y); splay(y);
+        ch[y][0] = fa[x] = 0; push_up(y);
+    }
+    int query(int x, int y) {
+        make_root(x); access(y); splay(y);
+        int ret = mx[y];
+        while (ch[y][0] != 0) {
+            y = ch[y][0];
+            if (val[ret] < val[mx[y]]) val[ret] = mx[y];
+        }
+        if (x != y) return -1;
+        return ret;
+    }
+} splay;
+\end{lstlisting}
+
+\subsection{李超树（二维平面维护直线）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+int tree[maxn<<2];
+char s[15];
+double k[maxn], b[maxn];
+int tot;
+double cal(int id, double x) {
+    double ret = k[id]*x + b[id];
+    return ret;
+}
+int sgn(double x) {
+    if(fabs(x) < eps) return 0;
+    if(x < 0) return -1;
+    return 1;
+}
+double getPos(double k1, double b1, double k2, double b2) {
+    double ret = (b2 - b1)/(k1 - k2);
+    return ret;
+}
+void ist(int x, int lf, int rt, int id) {
+    if(tree[x] == 0) {
+        tree[x] = id;
+        return ;
+    }
+    double vl1 = cal(id, (double)lf), vl2 = cal(tree[x], (double)lf);
+    double vr1 = cal(id, (double)rt), vr2 = cal(tree[x], (double)rt);
+    int dt1 = sgn(vl1 - vl2), dt2 = sgn(vr1 - vr2);
+    if(dt1 <= 0 && dt2 <= 0) return ;
+    if(dt1 >= 0 && dt2 >= 0) {
+        tree[x] = id;
+        return ;
+    }
+    int mid = (lf + rt) >> 1;
+    double dm = mid;
+    double pos = getPos(k[id], b[id], k[tree[x]], b[tree[x]]);
+    if(dt1 >= 0) {
+        if(sgn(pos - dm) <= 0) {
+            ist(x << 1, lf, mid, id);
+            tree[x] = tree[x];
+        } else {
+            ist(x << 1 | 1, mid + 1, rt, tree[x]);
+            tree[x] = id;
+        }
+    } else {
+        if(sgn(pos - dm) <= 0) {
+            ist(x << 1, lf, mid, tree[x]);
+            tree[x] = id;
+        } else {
+            ist(x << 1 | 1, mid + 1, rt, id);
+            tree[x] = tree[x];
+        }
+    }
+}
+double query(int x, int lf, int rt, double pos) {
+    double ret = 0.0;
+    if(tree[x] != 0) ret = max(ret, cal(tree[x], pos));
+    if(lf == rt) return ret;
+    int mid = (lf + rt) >> 1;
+    double dm = mid;
+    if(sgn(dm - pos) >= 0) ret = max(ret, query(x << 1, lf, mid, pos));
+    else ret = max(ret, query(x << 1 | 1, mid + 1, rt, pos));
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{左偏树（可并堆）（log(n)时间内合并两个堆）}
+
+\begin{lstlisting}[language=C++]
+template<class T>
+struct LeftistTree {
+    static const int NodeNum = 1e6 + 5;
+    int tot;
+    struct Data {
+        T key;
+        int l, r, dist;
+    } tr[NodeNum << 1];
+    void Init() {
+        tot = 0;
+    }
+    LeftistTree() {
+        Init();
+    }
+    int New(T key) {
+        ++tot;
+        tr[tot].l = tr[tot].r = 0;
+        tr[tot].key = key;
+        tr[tot].dist = 0;
+        return tot;
+    }
+    int Merge(int x, int y) {
+        if(x == 0) return y;
+        if(y == 0) return x;
+        if(tr[y].key > tr[x].key) swap(x, y);
+        tr[x].r = Merge(tr[x].r, y);
+        if(tr[tr[x].l].dist < tr[tr[x].r].dist)
+            swap(tr[x].l, tr[x].r);
+        tr[x].dist = tr[tr[x].r].dist + 1;
+        return x;
+    }
+    void Push(int &x, T key) {
+        x = Merge(x, New(key));
+    }
+    T Pop(int& x) {
+        T ret = tr[x].key;
+        x = Merge(tr[x].l, tr[x].r);
+        return ret;
+    }
+    T Top(int& x) {
+        return tr[x].key;
+    }
+};
+LeftistTree<int> Tree;
+\end{lstlisting}
+
+\subsection{哈希表}
+
+\begin{lstlisting}[language=C++]
+template <typename T1, typename T2>
+class Hash {
+public:
+    static const int HashMod = 7679977;
+    // 99991, 3000017, 7679977, 19260817
+    int tp, st[HashMod + 5];
+    bool vis[HashMod + 5];
+    T1 h[HashMod + 5];
+    T2 val[HashMod + 5];
+    int locate(const T1& x) const {
+        int p = x%HashMod;
+        while(vis[p] && h[p] != x) {
+            if(++p == HashMod) p = 0;
+        }
+        return p;
+    }
+    Hash() {
+        tp = 0;
+        memset(vis, false, sizeof(false));
+    }
+    void ist(const T1& x, const T2& y) {
+        const int p = locate(x);
+        assert(!vis[p] || h[p] == x);
+        if (!vis[p]) {
+            h[p] = x; vis[p] = true;
+            val[p] = y;
+            st[++tp] = p;
+        } else if (h[p] == x) {
+            val[p] = y;
+        } else {
+            assert(false);
+        }
+    }
+    bool get(const T1& x, T2& y) const {
+        const int p = locate(x);
+        if(vis[p] && h[p] == x) {
+            y = val[p];
+            return true;
+        }
+        return false;
+    }
+    void prt() {
+        for (int i = 1; i <= tp; ++i) {
+            if (i > 1) cout << " ";
+            cout << h[st[i]];
+        }
+        cout << endl;
+    }
+    void clr() {
+        while (tp > 0) vis[st[tp--]] = false;
+    }
+};
+Hash<int, int> H;
+\end{lstlisting}

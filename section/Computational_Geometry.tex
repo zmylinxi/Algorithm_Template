@@ -1,0 +1,404 @@
+
+
+\section{计算几何}
+
+\subsection{凸包 Andrew 算法}
+
+\begin{lstlisting}[language=C++]
+//计算凸包，输入点数组为 p，个数为 n， 输出点数组为 ch。函数返回凸包顶点数
+struct Point {
+    double x, y;
+    Point(double x = 0, double y = 0) :x(x), y(y) {}
+};
+typedef Point Vector;
+const double eps = 1e-6;
+bool operator < (const Point& a, const Point& b) {
+    if(a.x == b.x)
+        return a.y < b.y;
+    return a.x < b.x;
+}
+int sgn(double x) {
+    if(fabs(x) < eps) return 0;
+    if(x < 0) return -1;
+    return 1;
+}
+double Cross(Vector A, Vector B) {
+    return A.x * B.y - A.y * B.x;
+}
+int ConvexHull(Point* p, int n, Point* ch) {
+    std::sort(p, p + n);
+    int m = 0;
+    for(int i = 0; i < n; ++i) {
+        while(m > 1 && Cross(ch[m - 1] - ch[m - 2], p[i] - ch[m - 2]) < 0) --m;
+        ch[m++] = p[i];
+    }
+    int k = m;
+    for(int i = n - 2; i >= 0; --i) {
+        while(m > k && Cross(ch[m - 1] - ch[m - 2], p[i] - ch[m - 2]) < 0) --m;
+        ch[m++] = p[i];
+    }
+    if(n > 1) --m;
+    return m;
+}
+\end{lstlisting}
+
+\subsection{旋转卡壳}
+
+\subsubsection{求凸包直径}
+
+\begin{lstlisting}[language=C++]
+// 计算距离的平方
+double Dist2(Point p1, Point p2) { 
+    double ret = Dot(p1 - p2, p1 - p2);
+    return ret;
+}
+// 返回平面最大距离的平方
+double RotatingCalipers(Point* ch, int m) {
+    if(m == 1) return 0.0;
+    if(m == 2) return Dist2(ch[0], ch[1]);
+    double ret = 0.0;
+    ch[m] = ch[0];
+    int j = 2;
+    for(int i = 0; i < m; ++i) {
+        while(Cross(ch[i + 1] - ch[i], ch[j] - ch[i]) < Cross(ch[i + 1] - ch[i], ch[j + 1] - ch[i]))
+            j = (j + 1)%m;
+        ret = max(ret, max(Dist2(ch[j], ch[i]), Dist2(ch[j], ch[i + 1])));
+    }
+    return ret;
+}   
+\end{lstlisting}
+
+\subsubsection{求凸包的宽（凸包对踵点的最小值）}
+
+\begin{lstlisting}[language=C++]   
+double dist(Point a, Point b){
+    double ret = sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y));
+    return ret;
+}
+double mxid[maxn];
+double RotateCalipersWide(Point* p, int n){
+    int j = 1;
+    p[n] = p[0];
+    for(int i = 0; i < n; ++i){
+        while(fabs(Cross(p[i + 1] - p[i], p[j + 1] - p[i])) > fabs(Cross(p[i + 1] - p[i], p[j] - p[i]))) j = (j + 1)%n;
+        mxid[i] = fabs(Cross(p[j] - p[i], p[i + 1] - p[i]))/dist(p[i], p[i + 1]);
+    }
+    double ret = 1e18;
+    for(int i = 0; i < n; ++i) ret = min(ret, mxid[i]);
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{凸包上最大三角形面积}
+
+\begin{lstlisting}[language=C++]
+double RotatingCalipers(Point* p, int n){
+    if(n < 3) return 0.0;
+    double ret = 0;
+    for(int i = 0; i < n; ++i){
+        int j = (i + 1)%n;
+        int k = (j + 1)%n;
+        while(j != i && k != i){
+            ret = max(ret, Cross(p[j] - p[i], p[k] - p[j]));
+            while(Cross(p[i] - p[j], p[(k + 1)%n] - p[k]) < 0) k = (k + 1)%n;
+            j = (j + 1)%n;
+        }
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{半平面交O(nlogn)}
+
+\begin{lstlisting}[language=C++]
+const double eps = 1e-6;
+struct Point{
+    double x, y;
+    Point(double x = 0, double y = 0):x(x),y(y){}
+};
+typedef Point Vector;
+Vector operator + (Vector A, Vector B){
+    return Vector(A.x+B.x, A.y+B.y);
+}
+Vector operator - (Point A, Point B){
+    return Vector(A.x-B.x, A.y-B.y);
+}
+Vector operator * (Vector A, double p){
+    return Vector(A.x*p, A.y*p);
+}
+int sgn(double x){
+    if(fabs(x) < eps)
+        return 0;
+    if(x < 0)
+        return -1;
+    return 1;
+}
+double Dot(Vector A, Vector B){
+    return A.x*B.x + A.y*B.y;
+}
+double Cross(Vector A, Vector B){
+    return A.x*B.y-A.y*B.x;
+}
+double Length(Vector A){
+    return sqrt(Dot(A, A));
+}
+Vector Normal(Vector A){//向量A左转90°的单位法向量
+    double L = Length(A);
+    return Vector(-A.y/L, A.x/L);
+}
+struct Line{
+    Point p;//直线上任意一点
+    Vector v;//方向向量，它的左边就是对应的半平面
+    double ang;//极角，即从x轴正半轴旋转到向量v所需要的角（弧度）
+    Line(){}
+    Line(Point p, Vector v) : p(p), v(v){
+        ang = atan2(v.y, v.x);
+    }
+    bool operator < (const Line& L) const {//排序用的比较运算符
+        return ang < L.ang;
+    }
+};
+//点p在有向直线L的左侧
+bool OnLeft(Line L, Point p){
+    return Cross(L.v, p - L.p) > 0;
+}
+//两直线交点。假定交点唯一存在
+Point GetIntersection(Line a, Line b){
+    Vector u = a.p - b.p;
+    double t = Cross(b.v, u)/Cross(a.v, b.v);
+    return a.p + a.v*t;
+}
+//半平面交的主过程
+int HalfplaneIntersection(Line* L, int n, Point* poly){
+    sort(L, L + n);//按照极角排序
+    int fst = 0, lst = 0;//双端队列的第一个元素和最后一个元素
+    Point *P = new Point[n];//p[i] 为 q[i]与q[i + 1]的交点
+    Line *q = new Line[n];//双端队列
+    q[fst = lst = 0] = L[0];//初始化为只有一个半平面L[0]
+    for(int i = 1; i < n; ++i){
+        while(fst < lst && !OnLeft(L[i], P[lst - 1])) --lst;
+        while(fst < lst && !OnLeft(L[i], P[fst])) ++fst;
+        q[++lst] = L[i];
+        if(sgn(Cross(q[lst].v, q[lst - 1].v)) == 0){
+            //两向量平行且同向，取内侧一个
+            --lst;
+            if(OnLeft(q[lst], L[i].p)) q[lst] = L[i];
+        }
+        if(fst < lst)
+            P[lst - 1] = GetIntersection(q[lst - 1], q[lst]);
+    }
+    while(fst < lst && !OnLeft(q[fst], P[lst - 1])) --lst;
+    //删除无用平面
+    if(lst - fst <= 1) return 0;//空集
+    P[lst] = GetIntersection(q[lst], q[fst]);//计算首尾两个半平面的交点
+    //从deque复制到输出中
+    int m = 0;
+    for(int i = fst; i <= lst; ++i) poly[m++] = P[i];
+    return m;
+}
+\end{lstlisting}
+
+\subsection{平面最近点对O(nlogn)}
+
+\begin{lstlisting}[language=C++]
+struct Point {
+    double x,y;
+    bool operator <(const Point &a)const {
+        return x < a.x;
+    }
+};
+inline double dist(const Point &p1, const Point &p2) {
+    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+}
+Point p[maxn], q[maxn];
+double ClosestPair(int l, int r) {
+    if(l == r)
+        return inf;
+    int mid = (l+r)>>1;
+    double tx = p[mid].x;
+    int tot = 0;
+    double ret = min(ClosestPair(l, mid), ClosestPair(mid + 1, r));
+    for(int i = l, j = mid + 1; (i <= mid || j <= r); ++i) {
+        while(j <= r && (p[i].y > p[j].y || i > mid)) {
+            q[tot++] = p[j];
+            j++; //归并按y排序
+        }
+        if(abs(p[i].x - tx) < ret && i <= mid) { //选择中间符合要求的点
+            for(int k = j - 1; k > mid && j - k < 3; --k)
+                ret = min(ret, dist(p[i], p[k]));
+            for(int k = j; k <= r && k-j < 2; ++k)
+                ret = min(ret, dist(p[i], p[k]));
+        }
+        if(i <= mid)
+            q[tot++] = p[i];
+    }
+    for(int i = l, j = 0; i <= r; ++i, ++j)
+        p[i] = q[j];
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{用给定半径的圆覆盖最多的点}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 3e2 + 5;
+const double PI = acos(-1.0);
+struct Point{
+    double x, y;
+}p[maxn];
+struct Angle{
+    double pos;
+    bool in;
+    bool operator < (const Angle& a) const {
+        return pos < a.pos;
+    }
+}a[maxn<<1];
+inline double Dist(Point& p1, Point& p2){
+    return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
+}
+//点集的大小n，给定圆的半径r，返回最多覆盖的点的个数
+int solve(int n, double r){
+    int ret = 1;
+    for(int i = 0; i < n; ++i){
+        int m = 0;
+        for(int j = 0; j < n; ++j){
+            if(i == j) continue;
+            double d = Dist(p[i], p[j]);
+            if(d > 2*r) continue;
+            double alpha = atan2(p[j].y - p[i].y, p[j].x - p[i].x);
+            double beta = acos(d/(2*r));
+            a[m].pos = alpha - beta;
+            a[m++].in = true;
+            a[m].pos = alpha + beta;
+            a[m++].in = false;
+        }
+        sort(a, a + m);
+        int t = 1;
+        for(int j = 0; j < m; ++j){
+            if(a[j].in) ++t;
+            else --t;
+            if(ret < t) ret = t;
+        }
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{给定正多边形的三个点求该正多边形的最小面积}
+
+\subsubsection{题目大意}
+
+
+对于一个正多边形，只给出了其中三点的坐标，求这个多边形可能的最小面积，给出的三个点一定能够组成三角形。
+
+\subsubsection{思路}
+
+对于给定的三角形，其外接圆半径大小是一定的；
+
+在外接圆半径大小一定的情况下，要使正多边形面积最小，就是使正多边形的边数最少，也就是使得每条边所对应的圆心角最大。
+
+而最大圆心角 = 三角形三条边所对应的三个圆心角的公约数。
+
+\subsubsection{代码实现}
+
+\begin{lstlisting}[language=C++]
+const double pi = acos(-1.0);
+const double eps = 2*pi/101;
+struct Point{
+    double x;
+    double y;
+    Point(double x = 0, double y = 0):x(x),y(y){}
+}p[5];
+int sgn(double x){
+    if(fabs(x) < eps) return 0;
+    if(x > 0) return 1;
+    return -1;
+}
+double dist(Point a, Point b){
+    double ret = (a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y);
+    ret = sqrt(ret);
+    return ret;
+}
+double ang(double a, double b, double c){
+    double ret = (a*a + b*b - c*c)/(2*a*b);
+    ret = acos(ret);
+    return ret;
+}
+double fgcd(double a, double b){
+    if(sgn(a) == 0) return b;
+    if(sgn(b) == 0) return a;
+    return fgcd(b, fmod(a, b));
+}
+int main(){
+    rep(i, 0, 3) sff(p[i].x, p[i].y);
+    double a = dist(p[0], p[1]);
+    double b = dist(p[0], p[2]);
+    double c = dist(p[1], p[2]);
+//    printf("%.6f %.6f %.6f\n", a, b, c);
+    double p = (a + b + c)/2;
+    double s = sqrt(p*(p - a)*(p - b)*(p - c));
+    double r = a*b*c/(4*s);
+//    printf("%f\n", r);
+    double theta1 = ang(r, r, a);
+    double theta2 = ang(r, r, b);
+    double theta3 = 2*pi - theta1 - theta2;
+    double theta = fgcd(fgcd(theta1, theta2), theta3);
+//    printf("%f\n", theta);
+    double ans = 2*pi/theta;
+    ans *= r*r*sin(theta)/2;
+    printf("%.6f\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{圆上的整点}
+
+求圆心在 (0, 0) 半径为 r 的圆上的所有整点。
+
+\begin{lstlisting}[language=C++]
+struct Point {
+    ll x, y; double theta;
+    Point(ll x = 0, ll y = 0):x(x), y(y) {
+        theta = atan2(x, y);
+    }
+    bool operator <(const Point& p) const {
+        return theta < p.theta;
+    }
+};
+struct Circle {
+    vector<Point> v;
+    void work(ll d, ll r) {
+        for(ll s = 1; s*s <= r/d; ++s) {
+            ll t = sqrt(r/d - s*s);
+            if(__gcd(s,t) == 1LL && s*s + t*t == r/d) {
+                ll x = (s*s - t*t)/2LL*d;
+                ll y = d*s*t;
+                if(x > 0 && y > 0 && x*x + y*y == (r/2LL)*(r/2LL)) {
+                    v.push_back(Point(x, y)), v.push_back(Point(y, x));
+                    v.push_back(Point(x, -y)), v.push_back(Point(y, -x));
+                    v.push_back(Point(-x, y)), v.push_back(Point(-y, x));
+                    v.push_back(Point(-x, -y)), v.push_back(Point(-y, -x));
+                }
+            }
+        }
+    }
+    void solve(ll r) {
+        r <<= 1; v.clear();
+        for(ll i = 1; i*i <= r; ++i) {
+            if(r%i == 0) {
+                work(i, r);
+                if(i*i != r) work(r/i, r);
+            }
+        }
+        v.push_back(Point(r/2LL, 0)), v.push_back(Point(-r/2LL, 0));
+        v.push_back(Point(0, r/2LL)), v.push_back(Point(0, -r/2LL));
+        sort(v.begin(), v.end());
+    }
+    void pt() {
+        int sz = v.size();
+        for(int i = 0; i < sz; ++i) {
+            printf("%d: %lld %lld %f\n", i, v[i].x, v[i].y, v[i].theta);
+        }
+    }
+} C;
+\end{lstlisting}

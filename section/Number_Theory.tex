@@ -1,0 +1,734 @@
+
+
+\section{数论}
+\subsection{素数筛}
+\subsubsection{线性筛}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e7 + 5;
+const int maxp = 1e6 + 5;
+// 1e7 以内的素数一共有 664579 （不到 7e5 ）个
+int p[maxp], tot;
+bool np[maxn];
+void getPrime(int n) {
+    tot = 0;
+    for(int i = 0; i <= n; ++i) np[i] = false;
+    for(int i = 2; i <= n; ++i) {
+        if(!np[i]) p[tot++] = i;
+        for(int j = 0; j < tot; ++j) {
+            int x = i*p[j];
+            if(x > n) break;
+            np[x] = true;
+            if(i%p[j] == 0) break;
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{小素数 x 在 log x 时间内分解}
+
+需对值域内所有的小素数线性预处理
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e7 + 5;
+const int maxp = 1e6 + 5;
+int p[maxp], mf[maxn], tot;
+bool np[maxn];
+void getPrime(int n) {
+    tot = 0;
+    for(int i = 0; i <= n; ++i) np[i] = false;
+    for(int i = 2; i <= n; ++i) {
+        if(!np[i]) {
+            p[tot++] = i;
+            mf[i] = i;
+        }
+        for(int j = 0; j < tot; ++j) {
+            int x = i*p[j];
+            if(x > n) break;
+            np[x] = true; mf[x] = p[j];
+            if(i%p[j] == 0) break;
+        }
+    }
+}
+int fac[35], num;
+void getFactor(int x) {
+    num = 0;
+    while(x > 1) {
+        fac[num++] = mf[x];
+        x /= mf[x];
+    }
+}
+\end{lstlisting}
+
+\subsubsection{区间筛 （$O(nloglogn)$）}
+
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+bool isP[maxn], isPS[maxn];
+ll p[maxn];
+int tot;
+// O(nloglogn) 筛出在区间 [a, b) 中的所有素数
+void SegmentSieve(ll a, ll b){
+    tot = 0;
+    for(ll i = 0; i*i < b; ++i) isPS[i] = true;
+    for(int i = 0; i < b - a; ++i) isP[i] = true;
+    for(ll i = 2; i*i < b; ++i){
+        if(!isPS[i]) continue;
+        for(ll j = 2*i; j*j < b; j += i) isPS[j] = false;
+        for(ll j = max(2LL, (a + i - 1)/i)*i; j < b; j += i) isP[j - a] = false;
+    }
+    for(ll i = 0; i < b - a; ++i){
+        if(!isP[i]) continue;
+        ll num = a + i;
+        if(num > 1) p[tot++] = a + i;
+    }
+}
+\end{lstlisting}
+
+
+
+
+\subsubsection{Meisell-Lehmer ($O(n ^ {\frac{2}{3}})$ 求 $[1,  n]$ 素数的个数)}
+
+\begin{lstlisting}[language=C++]
+namespace Solver {
+    const int N = 5e6 + 2;
+    bool np[N];
+    int prime[N], pi[N];
+    int getprime() {
+        int cnt = 0;
+        np[0] = np[1] = 1;
+        pi[0] = pi[1] = 0;
+        for(int i = 2; i < N; ++i) {
+            if(!np[i]) prime[++cnt] = i;
+            pi[i] = cnt;
+            for(int j = 1; j <= cnt && i * prime[j] < N; ++j) {
+                np[i * prime[j]] = 1;
+                if(i % prime[j] == 0)   break;
+            }
+        }
+        return cnt;
+    }
+    const int M = 7;
+    const int PM = 2 * 3 * 5 * 7 * 11 * 13 * 17;
+    int phi[PM + 1][M + 1], sz[M + 1];
+    void init() {
+        getprime();
+        sz[0] = 1;
+        for(int i = 0; i <= PM; ++i)  phi[i][0] = i;
+        for(int i = 1; i <= M; ++i) {
+            sz[i] = prime[i] * sz[i - 1];
+            for(int j = 1; j <= PM; ++j) phi[j][i] = phi[j][i - 1] - phi[j / prime[i]][i - 1];
+        }
+    }
+    int sqrt2(ll x) {
+        ll r = (ll)sqrt(x - 0.1);
+        while(r * r <= x)   ++r;
+        return int(r - 1);
+    }
+    int sqrt3(ll x) {
+        ll r = (ll)cbrt(x - 0.1);
+        while(r * r * r <= x)   ++r;
+        return int(r - 1);
+    }
+    ll getphi(ll x, int s) {
+        if(s == 0)  return x;
+        if(s <= M)  return phi[x % sz[s]][s] + (x / sz[s]) * phi[sz[s]][s];
+        if(x <= prime[s]*prime[s])   return pi[x] - s + 1;
+        if(x <= prime[s]*prime[s]*prime[s] && x < N) {
+            int s2x = pi[sqrt2(x)];
+            ll ans = pi[x] - (s2x + s - 2) * (s2x - s + 1) / 2;
+            for(int i = s + 1; i <= s2x; ++i) ans += pi[x / prime[i]];
+            return ans;
+        }
+        return getphi(x, s - 1) - getphi(x / prime[s], s - 1);
+    }
+    ll getpi(ll x) {
+        if(x < N) return pi[x];
+        ll ans = getphi(x, pi[sqrt3(x)]) + pi[sqrt3(x)] - 1;
+        for(int i = pi[sqrt3(x)] + 1, ed = pi[sqrt2(x)]; i <= ed; ++i) ans -= getpi(x / prime[i]) - i + 1;
+        return ans;
+    }
+    ll lehmer_pi(ll x) { // get ans
+        if(x < N)   return pi[x];
+        int a = (int)lehmer_pi(sqrt2(sqrt2(x)));
+        int b = (int)lehmer_pi(sqrt2(x));
+        int c = (int)lehmer_pi(sqrt3(x));
+        ll sum = getphi(x, a) +(ll)(b + a - 2) * (b - a + 1) / 2;
+        for (int i = a + 1; i <= b; i++) {
+            ll w = x / prime[i];
+            sum -= lehmer_pi(w);
+            if (i > c) continue;
+            ll lim = lehmer_pi(sqrt2(w));
+            for (int j = i; j <= lim; j++) sum -= lehmer_pi(w / prime[j]) - (j - 1);
+        }
+        return sum;
+    }
+}
+\end{lstlisting}
+
+\subsection{归并排序求逆序对 $O(nlog(n))$ }
+
+
+
+\begin{lstlisting}[language=C++]
+// 下标，例如数组int a[5]，全部排序的调用为 mgst(0, 4)
+// a1为原数组，a2为临时数组
+int a1[maxn], a2[maxn];
+ll mg(int lf, int mid, int rt){
+    int i = lf, j = mid + 1, k = lf;
+    ll ret = 0;
+    while(i <= mid && j <= rt){
+        if(a1[i] <= a1[j]) {
+            a2[k++] = a1[i++];
+        } else{
+            a2[k++] = a1[j++];
+            ret += (ll)j - k;
+        }
+    }
+    while(i <= mid) a2[k++] = a1[i++];
+    while(j <= rt) a2[k++] = a1[j++];
+    for(int i = lf; i <= rt; ++i) a1[i] = a2[i];
+    return ret;
+}
+
+ll mgst(int lf, int rt){
+    ll ret = 0;
+    if(lf < rt){
+        int mid = (lf + rt)/2;
+        ret += mgst(lf, mid);
+        ret += mgst(mid + 1, rt);
+        ret += mg(lf, mid, rt);
+    }
+    return ret;
+}        
+\end{lstlisting}
+
+\subsection{GCD及其应用}
+
+\subsubsection{拓展GCD}
+
+\begin{lstlisting}[language=C++]
+//返回 d = gcd(a, b); 和对应于等式 ax + by = d 中的 x, y
+ll ExGcd(ll a, ll b, ll &x, ll &y) {
+    if(b == 0) {
+        if(a == 0) return -1;
+        x = 1; y = 0;
+        return a;
+    }
+    ll d = ExGcd(b, a%b, y, x);
+    y -= a/b*x;
+    return d;
+}
+\end{lstlisting}
+
+\subsubsection{EXGCD求逆元}
+
+\begin{lstlisting}[language=C++]
+// ax = 1(% mod)
+ll mod_reverse(ll a, ll mod){ // 不要求mod为素数
+    ll x, y;
+    ll d = extend_gcd(a, mod, x, y);
+    if(d == 1) return (x%mod + mod)%mod;
+    return -1LL;
+}
+\end{lstlisting}
+
+\subsubsection{浮点数GCD}
+
+\begin{lstlisting}[language=C++]
+int sgn(double x){
+    if(fabs(x) < eps) return 0;
+    if(x > 0) return 1;
+    return -1;
+}
+double fgcd(double a, double b){
+    if(sgn(a) == 0) return b;
+    if(sgn(b) == 0) return a;
+    return fgcd(b, fmod(a, b));
+}
+\end{lstlisting}
+
+\subsection{逆元}
+
+\subsubsection{取模意义下快速幂 $O(log(n))$}
+
+\begin{lstlisting}[language=C++]
+ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
+    ll r = 1, bs = a;
+    while(b) {
+        if(b & 1)
+            r = r*bs%mod;
+        bs = bs*bs%mod;
+        b >>= 1;
+        b %= mod;
+    }
+    return r;
+}
+\end{lstlisting}
+
+\subsubsection{费马小定理}
+
+当模数为素数时，在模 $mod$ 意义下， $inv(a) = a^{-1} = a^{mod - 2}$
+
+\subsubsection{线性递推阶乘逆元}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+const ll mod = 1e9 + 7;
+ll fac[maxn], inv_fac[maxn];
+ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
+    ll r = 1, bs = a;
+    while(b) {
+        if(b & 1)
+            r = r*bs%mod;
+        bs = bs*bs%mod;
+        b >>= 1;
+        b %= mod;
+    }
+    return r;
+}
+void getFacInv(int n) { // n 为最大所需阶乘数
+    fac[0] = 1;
+    for(int i = 1; i <= n; ++i)
+        fac[i] = (fac[i-1]*i)%mod;
+    inv_fac[n] = pow_m(fac[n], mod - 2, mod);
+    for(int i = n-1; i >= 0; --i)
+        inv_fac[i] = (inv_fac[i+1]*(i+1))%mod;
+    return ;
+}
+\end{lstlisting}
+
+\subsubsection{线性递推逆元}
+
+\begin{lstlisting}[language=C++]
+int inv[maxn];
+void GetInv(int p) {
+    inv[1] = 1;
+    for(int i = 2; i < p; ++i) {
+        inv[i] = (ll)(p - (p/i))*inv[p%i]%p;
+        printf("inv[%d] = %d\n", i, inv[i]);
+    }
+}
+\end{lstlisting}
+
+\subsection{中国剩余定理 CRT}
+
+\subsubsection{CRT（要求模数数组两两互质）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+int a[maxn]; // 余数数组
+int m[maxn]; // 模数数组
+
+// n为数组长度
+ll CRT(int n) {
+    ll M = 1;
+    ll ans = 0;
+    for(int i = 0; i < n; ++i)
+        M *= m[i];
+    for(int i = 0; i < n; ++i) {
+        ll Mi = M/m[i];
+        ans = (ans+(((Mi*inv(Mi, m[i]))%M)*a[i]%M))%M;
+    }
+    while(ans < 0) ans += M;
+    return ans;
+}
+\end{lstlisting}
+
+\subsubsection{EXCRT（不要求模数数组两两互质）}
+
+\begin{lstlisting}[language=C++]
+/*
+ *   hdu 1573
+ *   求在小于等于 n 的正整数中有多少个 X 满足：
+ *   X mod a[0] = b[0], X mod a[1] = b[1], ...... , X mod a[m - 1] = b[m - 1]
+ *   (0 < n <= 1,000,000,000, 0 < m <= 10)
+*/
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int maxn = 10 + 5;
+ll a[maxn], b[maxn], n, m;
+ll extgcd(ll a, ll b, ll &x, ll &y){
+    ll d = a;
+    if(b != 0){
+        d = extgcd(b, a%b, y, x);
+        y -= (a/b)*x;
+    }
+    else{
+        x = 1;
+        y = 0;
+    }
+    return d;
+}
+ll ExCRT(){
+    ll a1 = a[0], b1 = b[0];
+    for(int i = 1; i < m; i++){
+        ll a2 = a[i], b2 = b[i];
+        ll bb = b2 - b1, x, y;
+        ll d = extgcd(a1, a2, x, y);
+        if(bb%d) return 0;
+        ll k = bb/d*x, t = a2/d;
+        if(t < 0) t = -t;
+        k = (k%t + t)%t;
+        b1 = b1 + a1*k;
+        a1 = a1/d*a2;
+    }
+    ll ret = b1;
+    if (ret == 0) ret = a1;
+    if(ret > n) return 0;
+    ret = (n - ret)/a1 + 1;
+    return ret;
+}
+
+int main(){
+    int t; scanf("%d", &t);
+    while(t--){
+        scanf("%lld %lld", &n, &m);
+        for(int i = 0; i < m; ++i) scanf("%lld", &a[i]);
+        for(int i = 0; i < m; ++i) scanf("%lld", &b[i]);
+        printf("%lld\n", ExCRT());
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{欧拉函数}
+
+\subsubsection{线性筛}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+int phi[maxn], p[maxn], tot;
+bool np[maxn];
+void get_phi(int n) {
+    tot = 0;
+    phi[1] = 1;
+    for (int i = 2; i <= n; ++i) {
+        if (!np[i]) {
+            p[tot++] = i;
+            phi[i] = i - 1;
+        }
+        for (int j = 0; j < tot; ++j) {
+            int x = i*p[j];
+            if (x > n) break;
+            np[x] = true;
+            if (i%p[j] == 0) {
+                phi[x] = phi[i]*p[j];
+                break;
+            } else {
+                phi[x] = phi[i]*(p[j] - 1);
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{$O(\sqrt{x})$ 求单个欧拉函数值}
+
+\begin{lstlisting}[language=C++]
+ll get_phi(ll x) {
+    ll ret = x, sx = sqrt(x) + 1;
+    for (ll j = 2; j <= sx; ++j) {
+        if (x%j == 0) {
+            ret = ret/j*(j - 1);
+            while (x%j == 0) x /= j;
+        }
+    }
+    if (x > 1) ret = ret/x*(x - 1LL);
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{莫比乌斯函数}
+
+
+如果一个数包含平方因子，那么 miu(n) = 0。
+
+例如：miu(4), miu(12), miu(18) = 0。
+
+如果一个数不包含平方因子，并且有 k 个不同的质因子，那么 $miu(n) = (-1)^k$。
+
+例如：miu(2), miu(3), miu(30) = -1,miu(1), miu(6), miu(10) = 1。
+
+\subsubsection{线性筛}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e7 + 5;
+bool isNotPrime[maxn];
+vector<int> prime;
+int miu[maxn];
+void getMiu(int n) {
+    isNotPrime[1] = true;
+    miu[1] = 1;
+    for(int i = 2; i <= n; i++) {
+        if(!isNotPrime[i]) {
+            prime.push_back(i);
+            miu[i] = -1;
+        }
+        for(int j = 0; j < prime.size() && i*prime[j] <= n; ++j){
+            isNotPrime[i*prime[j]] = true;
+            if(i%prime[j] == 0) {
+                miu[i*prime[j]] = 0;
+                break;
+            }
+            miu[i*prime[j]] = -miu[i];
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{$O(\sqrt{x})$ 求单个莫比乌斯函数的值}
+
+\begin{lstlisting}[language=C++]
+int getMiu(ll n){
+    int v = 1;
+    for(ll i = 2; i*i <= n; ++i){
+        if(n%i == 0){
+            v = -v;
+            n /= i;
+            if(n%i == 0) return 0;
+        }
+    }
+    if(n != 1) v = -v;
+    return v;
+}
+\end{lstlisting}
+
+\subsubsection{数论分块}
+
+对于给出的 n 个询问，每次求有多少个数对 $(x, y)$ ，满足 $a \le x \le b$ ， $c \le y \le d$ ，且 $gcd(x, y) = k$ ， $gcd(x, y)$ 函数为 x 和 y 的最大公约数。
+
+\begin{lstlisting}[language=C++]
+int tot;
+int miu[maxn], p[maxn], sum[maxn];
+bool notP[maxn];
+void getMiu() {
+    miu[1] = 1; tot = 0;
+    sum[0] = 0; sum[1] = 1;
+    for(int i = 2; i < maxn; ++i) {
+        if(!notP[i]) {
+            p[tot++] = i;
+            miu[i] = -1;
+        }
+        for(int j = 0; j < tot; ++j) {
+            int num = i*p[j];
+            if(num >= maxn) break;
+            notP[num] = true;
+            if(i%p[j] == 0) {
+                miu[num] = 0;
+                break;
+            }
+            miu[num] = -miu[i];
+        }
+        sum[i] = sum[i - 1] + miu[i];
+    }
+}
+int solve(int a, int b, int d) {
+    if(a > b) swap(a, b);
+    a /= d; b /= d;
+    int ret = 0;
+    for(int lf = 1, rt; lf <= a; lf = rt + 1) {
+        int qa = a/lf, qb = b/lf;
+        int ra = a/qa, rb = b/qb;
+        rt = min(ra, rb);
+        ret += (sum[rt] - sum[lf - 1])*qa*qb;
+    }
+    return ret;
+}
+int main() {
+    getMiu();
+    int t; scanf("%d", &t);
+    while(t--) {
+        int a, b, c, d, k; scanf("%d%d%d%d%d", &a, &b, &c, &d, &k);
+        int ans = solve(b, d, k) - solve(a - 1, d, k) - solve(b, c - 1, k) + solve(a - 1, c - 1, k);
+        printf("%d\n", ans);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{离散对数 EXBSGS 算法}
+
+已知 $a, b, Pa, b, P$，a 与 P 不一定互质
+
+求解同余方程 $ax ≡ b (mod P)$
+
+\begin{lstlisting}[language=C++]
+class Hash {
+    static const int HashMod = 3000017;
+    // 99991, 3000017, 7679977, 19260817
+    int tp, st[HashMod + 5];
+    bool vis[HashMod + 5];
+    ll h[HashMod + 5];
+    ll val[HashMod + 5];
+    int locate(const ll& x) const {
+        int p = x%HashMod;
+        while(vis[p] && h[p] != x) {
+            if(++p == HashMod) p = 0;
+        }
+        return p;
+    }
+public:
+    Hash() {
+        tp = 0;
+        memset(vis, false, sizeof(false));
+    }
+    void ist(const ll& x, const ll& y) {
+        const int p = locate(x);
+//        assert(!vis[p] || h[p] == x);
+        h[p] = x; val[p] = y;
+        vis[p] = true; st[++tp] = p;
+    }
+    bool get(const ll& x, ll& y) const {
+        const int p = locate(x);
+        if(vis[p] && h[p] == x) {
+            y = val[p];
+            return true;
+        }
+        return false;
+    }
+    void clr() {
+        while(tp) vis[st[tp--]] = false;
+    }
+};
+Hash H;
+ll ExGcd(ll a, ll b, ll &x, ll &y) {
+    if(b == 0) {
+        if(a == 0) return -1;
+        x = 1; y = 0;
+        return a;
+    }
+    ll d = ExGcd(b, a%b, y, x);
+    y -= a/b*x;
+    return d;
+}
+ll ExBSGS(ll A, ll B, ll C) {
+    H.clr();
+    ll ret = 1;
+    for(ll i = 0; i <= 50; ++i) {
+        if(ret == B) return i;
+        ret = ret*A%C;
+    }
+    ll d, x, y, ans = 1, cnt = 0;
+    while((d = ExGcd(A, C, x, y)) != 1) {
+        if(B%d) return -1;
+        C /= d; B /= d;
+        ans = ans*(A/d)%C;
+        ++cnt;
+    }
+    ll m = (ll)ceil(sqrt(C*1.0)), t = 1;
+    for(ll i = 0; i < m; ++i) {
+        H.ist(t, i);
+        t = t*A%C;
+    }
+    for(ll i = 0, j; i < m; ++i) {
+        ExGcd(ans, C, x, y);
+        ll val = x*B%C;
+        val = (val%C + C)%C;
+        if(H.get(val, j))  return m*i + j + cnt;
+        ans = ans*t%C;
+    }
+    return -1;
+}
+\end{lstlisting}
+
+\subsection{欧拉降幂公式}
+
+欧拉定理：若正整数 $a, n$ 互质，则 $a^{Euler(n)} ≡ 1 (mod \space n)$
+
+推论：若正整数 $a, n$ 互质，则对于任意正整数 $b$, 有 $a^b ≡ a^{b\%Euler(n)}(mod \space n)$
+
+对于 $p$ 是素数，$Euler(p) = p - 1$ 且只有 $p$ 的倍数与 $p$ 不互质
+
+\begin{lstlisting}[language=C++]
+#define Mod(a, b) (a < b ? a : a%b + b)
+unordered_map<ll, ll> p;
+ll Pow(ll x, ll y, ll mod){
+    ll ret = 1;
+    while(y){
+        if(y & 1) ret = Mod(ret*x, mod);
+        x = Mod(x*x, mod);
+        y >>= 1;
+    }
+    return ret;
+}
+ll phi(ll k){
+    ll s = k, x = k;
+    if(p[k] != 0) return p[k];
+    for(ll i = 2; i*i <= k; ++i){
+        if(k%i == 0) s = s/i*(i - 1);
+        while(k%i == 0) k /= i;
+    }
+    if(k > 1) s = s/k*(k - 1);
+    p[x] = s;
+    return s;
+}
+ll a[maxn];
+// return a[lf] ^ a[lf + 1] ^  ... ^ a[rt]
+// 注意返回值需要再 % mod ，因为 Mod 被重载为欧拉降幂的形式
+ll solve(int lf, int rt, ll mod){
+    if(lf == rt || mod == 1) return Mod(a[lf], mod);
+    return Pow(a[lf], solve(lf + 1, rt, phi(mod)), mod);
+}
+\end{lstlisting}
+
+\subsection{因子相关}
+
+\subsubsection{因子个数}
+
+$[1, 5 \times 10^6]$ 中，$4324320$ 的因子数最多，有 $384$ 个因子
+
+\subsubsection{因子和线性筛}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 4e6 + 5;
+bool np[maxn];
+int p[maxn], tot;
+ll sf[maxn], sp[maxn]; // sf: sum of factor sp: sum of prime
+void init() {
+    tot = 0; sf[1] = 1;
+    for(int i = 2; i < maxn; ++i) {
+        if(!np[i]) {
+            p[tot++] = i;
+            sf[i] = i + 1;
+            sp[i] = i + 1;
+        }
+        for(int j = 0; j < tot && i*p[j] < maxn; ++j) {
+            np[i*p[j]] = true;
+            if(i%p[j] == 0) {
+                sp[i*p[j]] = sp[i]*p[j] + 1;
+                sf[i*p[j]] = sf[i]/sp[i]*sp[i*p[j]];
+                break;
+            }
+            sf[i*p[j]] = sf[i]*sf[p[j]];
+            sp[i*p[j]] = 1LL + p[j];
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{威尔逊定理（利用阶乘判定素数的充要条件）}
+
+在初等数论中，威尔逊定理给出了判定一个自然数是否为素数的充分必要条件。
+
+即当且仅当 $p$ 为素数时：
+
+$$(p -1)! ≡ -1 \space (mod \space p)$$
+
+
+\subsection{斯特林近似（n 的阶乘的长度）}
+
+斯特林公式 $n! = sqrt(2*PI*n)*(n/e)^n$
+
+\begin{lstlisting}
+const double PI = acos(-1.0);
+ll solve(int n){
+    double nn = n;
+    ll ret = (ll)((0.5*log(2.0*PI*nn) + nn*log(nn) - nn)/log(10.0));
+    ++ret;
+    return ret;
+}
+\end{lstlisting}

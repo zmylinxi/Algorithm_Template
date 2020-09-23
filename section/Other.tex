@@ -1,0 +1,254 @@
+
+
+\section{杂项}
+
+\subsection{java 输入输出挂}
+
+\begin{lstlisting}[language=java]
+static class InputReader {
+    public BufferedReader reader;
+    public StringTokenizer tokenizer;
+    public InputReader(InputStream stream) {
+        reader = new BufferedReader(new InputStreamReader(stream), 32768);
+        tokenizer = null;
+    }
+    public String next() {
+        while(tokenizer == null || !tokenizer.hasMoreTokens()) {
+            try {
+                tokenizer = new StringTokenizer(reader.readLine());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return tokenizer.nextToken();
+    }
+    public int nextInt() {
+        return Integer.parseInt(next());
+    }
+    public long nextLong() {
+        return Long.parseLong(next());
+    }
+    public double nextDouble() {
+        return Double.parseDouble(next());
+    }
+}
+\end{lstlisting}
+
+\subsection{模拟退火（Simulate Anneal）}
+
+Sta：状态结构体
+
+J(y)：在状态y时的评价函数值
+
+r： 用于控制降温的快慢
+
+T： 系统的温度，系统初始应该要处于一个高温的状态
+
+$T_{min}$ ：温度的下限，若温度 $T$ 达到 $T_{min}$ ，则停止搜索
+
+\begin{lstlisting}[language=C++]
+    const double T_min = 1e-3;
+const double r = 0.98;
+struct Sta{
+    int x, y;
+    Sta(int x = 0, int y = 0):x(x), y(y){}
+};
+Sta move(Sta now){
+    Sta ret;
+    return ret;
+}
+int J(Sta x){
+    int ret = 0;
+
+    return ret;
+}
+int simulate_anneal(double T){
+    srand(time(NULL));
+    int ret = 0;
+    Sta now = Sta();
+    while(T > T_min){
+        Sta nxt = move(now);
+        int j1 = J(now), j2 = J(nxt);
+        int dE = j2 - j1;
+        if(ret < j1) ret = j1;
+        if(dE >= 0){ //表达移动后得到更优解，则总是接受移动
+            now = nxt; //接受从Y(i)到Y(i+1)的移动
+        }else{
+            // 函数exp(dE/T)的取值范围是(0, 1)，dE/T越大，则exp(dE/T)也
+            double val = exp(dE/T), rn = (double)(rand()%123456)/123456.0;
+            if(val > rn)
+                now = nxt; //接受从Y(i)到Y(i+1)的移动
+        }
+        T = r*T ; //降温退火 ，0<r<1 。r越大，降温越慢；r越小，降温越快
+        /*
+        * 若r过大，则搜索到全局最优解的可能会较高，但搜索的过程也就较长。若r过小，则搜索的过程会很快，但最终可能会达到一个局部最优值
+        */
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{慢速乘（防止乘法溢出）}
+
+\begin{lstlisting}[language=C++]
+ll mulmod(ll a, ll b){
+    ll ans = 0;
+    for(; b; b>>=1){
+        if(b & 1) ans = (ans + a) % mod;
+        a = a * 2 % mod;
+    }
+    return ans;
+}
+\end{lstlisting}
+
+\subsection{三分查找}
+
+\begin{lstlisting}[language=C++]
+const ll linf = 0x3f3f3f3f3f3f3f3f;
+ll cal(int x){
+    ll ret = 0;
+
+    return ret;
+}
+ll solve(int lf, int rt){
+    while(lf + 2 < rt){
+        int len = rt - lf;
+        int mid1 = len/3 + lf;
+        int mid2 = len/3*2 + lf;
+        // 此处为三分查找最小值
+        if(cal(mid1) >= cal(mid2)) lf = mid1;
+        else rt = mid2;
+    }
+    ll ret = linf;
+    for(int i = lf; i <= rt; ++i) ret = min(ret, cal(i));
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{分数类}
+
+\begin{lstlisting}[language=C++]
+template <typename T>
+struct Frac {
+    T up, down;
+    Frac(T u = 0, T d = 1) {
+        T g = __gcd(u, d);
+        up = u/g; down = d/g;
+        if(up > 0 && down < 0) {
+            up = -up;
+            down = -down;
+        }
+    }
+    bool operator <(const Frac& f) const {
+        if(up*f.down < down*f.up) return true;
+        return false;
+    }
+    bool operator ==(const Frac& f) const {
+        if(up == f.up && down == f.down) return true;
+        return false;
+    }
+    Frac operator +(const Frac& f) const {
+        T g = __gcd(down, f.down);
+        T u = f.down/g*up + down/g*f.up;
+        T d = down/g*f.down;
+        return Frac(u, d);
+    }
+    Frac operator -(const Frac& f) const {
+        T g = __gcd(down, f.down);
+        T u = f.down/g*up - down/g*f.up;
+        T d = down/g*f.down;
+        return Frac(u, d);
+    }
+    Frac operator *(const Frac& f) const {
+        T g1 = __gcd(up, f.down);
+        T g2 = __gcd(f.up, down);
+        T u = (up/g1)*(f.up/g2);
+        T d = (f.down/g1)*(down/g2);
+        return Frac(u, d);
+    }
+    Frac operator /(const Frac& f) const {
+        T g1 = __gcd(up, f.up);
+        T g2 = __gcd(down, f.down);
+        T u = (up/g1)*(f.down/g2);
+        T d = (f.up/g1)*(down/g2);
+        return Frac(u, d);
+    }
+    void pt() {
+        cout << up;
+        // 根据需要修改
+        if(down != 1) cout << "/" << down;
+        cout << endl;
+    }
+};
+Frac<ll> num;
+\end{lstlisting}
+
+\subsection{十进制水仙花数}
+
+\begin{lstlisting}[language=C++]
+    // [0, 88] 十进制自然数中共 89 个水仙花数
+string str[90] = {
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "153", "370", "371", "407",
+    "1634", "8208", "9474",
+    "54748", "92727", "93084",
+    "548834",
+    "1741725", "4210818", "9800817", "9926315",
+    "24678050", "24678051", "88593477",
+    "146511208", "472335975", "534494836", "912985153",
+    "4679307774",
+    "32164049650", "32164049651", "40028394225", "42678290603", "44708635679", "49388550606", "82693916578", "94204591914",
+    "28116440335967",
+    "4338281769391370", "4338281769391371",
+    "21897142587612075", "35641594208964132", "35875699062250035",
+    "1517841543307505039", "3289582984443187032", "4498128791164624869", "4929273885928088826",
+    "63105425988599693916",
+    "128468643043731391252", "449177399146038697307",
+    "21887696841122916288858", "27879694893054074471405", "27907865009977052567814", "28361281321319229463398", "35452590104031691935943",
+    "174088005938065293023722", "188451485447897896036875", "239313664430041569350093",
+    "1550475334214501539088894", "1553242162893771850669378", "3706907995955475988644380", "3706907995955475988644381", "4422095118095899619457938",
+    "121204998563613372405438066", "121270696006801314328439376", "128851796696487777842012787", "174650464499531377631639254", "177265453171792792366489765",
+    "14607640612971980372614873089", "19008174136254279995012734740", "19008174136254279995012734741", "23866716435523975980390369295",
+    "1145037275765491025924292050346", "1927890457142960697580636236639", "2309092682616190307509695338915",
+    "17333509997782249308725103962772",
+    "186709961001538790100634132976990", "186709961001538790100634132976991",
+    "1122763285329372541592822900204593",
+    "12639369517103790328947807201478392", "12679937780272278566303885594196922",
+    "1219167219625434121569735803609966019",
+    "12815792078366059955099770545296129367",
+    "115132219018763992565095597973971522400", "115132219018763992565095597973971522401"
+};
+\end{lstlisting}
+
+\subsection{牛顿迭代法（大数开方）}
+
+\begin{lstlisting}[language=java]
+import java.util.*;
+import java.math.BigInteger;
+public class Main {
+    public static void main(String[] args) {
+        Scanner cin = new Scanner(System.in);
+        BigInteger n = cin.nextBigInteger();
+        int len = n.toString().length()/2;
+        BigInteger x0 = new BigInteger(n.toString().substring(len));
+        while(true) {
+            BigInteger x1 = x0.multiply(x0).add(n).divide(BigInteger.valueOf(2).multiply(x0));
+            if(x1.compareTo(x0) == 0) break;
+            x0 = x1;
+        }
+        System.out.println(x0);
+        cin.close();
+    }
+}
+\end{lstlisting}
+
+
+\subsection{一些奇奇怪怪的性质}
+
+\begin{itemize}
+    \item 给定母串，多次询问子串，保证子串总长度小于等于sum，则有，其询问的字符串长度种类数最多为 $O(\sqrt sum)$
+    \item 若顶点坐标为整数，坐标值的范围不超过 M 的凸多边形的顶点数只有 $O((sqrt(M))^\frac{2}{3}) （O(M^\frac{1}{3})$ ?）
+    \item 字典序最小的拓扑序：拓扑排序 + 优先队列
+    \item 最小值最早出现（次小值在最小值最早出现的前提下最早出现......）的拓扑序：反向建图，跑出字典序最大的拓扑排序，倒序输出
+    \item 随机边权的图，最短路径上的边数很少，生成树不唯一的概率为 0
+\end{itemize}

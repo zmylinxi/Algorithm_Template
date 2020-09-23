@@ -1,0 +1,55 @@
+
+\documentclass{article}
+
+\usepackage{ctex}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage[hidelinks]{hyperref}
+% \usepackage{fontspec}
+
+\geometry{margin=1in}
+
+% 代码块格式设置
+
+\lstset{
+    breaklines = true,                  % 让LaTeX自动将长的代码行换行排版
+    extendedchars = false,              % 解决代码跨页时，章节标题，页眉等汉字不显示的问题
+    basicstyle = \sffamily,             % 基本代码风格
+    keywordstyle = \bfseries,           % 关键字风格
+    commentstyle = \rmfamily\itshape,   % 注释的风格，斜体
+    stringstyle = \ttfamily,            % 字符串风格
+    columns = fixed,                    % 如果不加这一句，字间距就不固定，很丑，必须加
+    numbers = left,                     % 行号的位置在左边
+    showspaces = false,                 % 是否显示空格，显示了有点乱，所以不现实了
+    numberstyle = \zihao{-5}\ttfamily,  % 行号的样式，小五号，tt等宽字体
+    showstringspaces = false,
+    captionpos = t,                     % 这段代码的名字所呈现的位置，t 指的是 top 上面
+    frame = lrtb,                       % 显示边框
+}
+
+\title{Algorithm Template}
+\author{linxi}
+\date{\today}
+
+\begin{document}
+    % \setmainfont{Courier New Bold}
+    \maketitle
+    \tableofcontents
+    \newpage
+
+    \input{section/Number_Theory.tex}
+    \input{section/Linear_Algebra.tex}
+    \input{section/Combinatorics.tex}
+    \input{section/Geometric_Basis.tex}
+    \input{section/Computational_Geometry.tex}
+    \input{section/Graph_Theory.tex}
+    \input{section/Network_And_Matching.tex}
+    \input{section/Data_Structure.tex}
+    \input{section/Dynamic_Programming.tex}
+    \input{section/Game_Theory.tex}
+    \input{section/String.tex}
+    \input{section/Other.tex}
+
+\end{document}

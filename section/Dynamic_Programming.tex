@@ -1,0 +1,749 @@
+
+
+\section{动态规划}
+
+\subsection{最长不降（上升）子序列 O(nlogn)}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+int a[maxn], b[maxn];
+int LIS(int n){
+    int tot = 0, ret = 0;
+    for(int i = 0; i < n; ++i){
+        int pos = lower_bound(b, b + tot, a[i]) - b;
+        if(pos == tot) b[tot++] = a[i];
+        else b[pos] = a[i];
+        ret = max(ret, pos + 1);
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{最长上升子序列计数（离散化 + 树状数组）}
+
+
+\begin{lstlisting}[language=C++]
+const int mod = 1e9 + 7;
+const int maxn = 5e4 + 5;
+int a[maxn];
+vector<int> b;
+unordered_map<int, int> id;
+int len, num;
+int mx[maxn << 1], cnt[maxn << 1];
+// 注意树状数组开 2 倍
+#define lowbit(x) (x&(-x))
+void query(int x) {
+    while(x > 0) {
+        if(mx[x] > len) {
+            len = mx[x];
+            num = cnt[x];
+        } else if(mx[x] == len) {
+            num = (cnt[x] + num)%mod;
+        }
+        x -= lowbit(x);
+    }
+}
+void update(int x) {
+    while(x < maxn) {
+        if(mx[x] < len) {
+            mx[x] = len;
+            cnt[x] = num;
+        } else if(mx[x] == len) {
+            cnt[x] = (cnt[x] + num)%mod;
+        }
+        x += lowbit(x);
+    }
+}
+int main() {
+    int n; scanf("%d", &n);
+    for(int i = 1; i <= n; ++i) {
+        scanf("%d", &a[i]);
+        b.push_back(a[i]);
+        b.push_back(a[i] - 1);
+    }
+    sort(b.begin(), b.end());
+    b.erase(unique(b.begin(), b.end()), b.end());
+    int sz = b.size();
+    for(int i = 0; i < sz; ++i) id[b[i]] = i + 1;
+    for(int i = 1; i <= n; ++i) a[i] = id[a[i]];
+    for(int i = 1; i <= n; ++i) {
+        len = 0, num = 1;
+        query(a[i] - 1);
+        ++len;
+        update(a[i]);
+    }
+    len = 0, num = 1;
+    query(maxn - 1);
+    printf("%d\n", num);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{编辑距离}
+
+dp[i][j]记录s1的前i个字符转换到s2的前j个字符的最小编辑距离
+
+\begin{lstlisting}[language=C++]
+int dp[maxn][maxn];
+int CompareString(char *s1, char *s2) {
+    memset(dp, 0, sizeof(dp));
+    int m = strlen(s1), n = strlen(s2);
+    for(int i = 0; i <= m; ++i) dp[i][0] = i;
+    for(int j = 0; j <= n; ++j) dp[0][j] = j;
+    for(int i = 1; i <= m; ++i){
+        for(int j = 1; j <= n; ++j){
+            int cost = 0;
+            if(s1[i - 1] == s2[j - 1]) cost = 0;
+            else cost = 1;
+            dp[i][j] = min(min(dp[i - 1][j - 1] + cost, dp[i - 1][j] + 1), dp[i][j - 1] + 1);
+        }
+    }
+    return dp[m][n];
+}    
+\end{lstlisting}
+
+\subsection{计算 hx 进制下所有位 num 出现的次数}
+
+\begin{lstlisting}[language=C++]
+ll tot[20];
+// n 数字最大位数， hx 进制。 比如 若最大数字为 1e18， 则 n = 19
+void init(int n, ll hx) {
+    tot[0] = 0;
+    ll bs = 1LL;
+    for(int i = 1; i < n; ++i) {
+        tot[i] = tot[i - 1]*hx + bs;
+        bs *= hx;
+    }
+    for(int i = 0; i < n; ++i) {
+        printf("%d: %lld\n", i, tot[i]);
+    }
+}
+// 计算 hx 进制下 [0, x] ，所有位（考虑算上前导零共 n 位） num 出现的次数 （lz 为是否考虑前导零）
+ll cnt(int n, ll x, ll num, ll hx, bool lz) {
+    ll ret = 0, dig = 0, bs = 1, tail = 0, xx = x;
+    int len = 0;
+    if(lz) {
+        // 计算前导零
+        while(len < n) {
+            dig = x%hx;
+            x /= hx;
+            if(dig > num) ret += bs + dig*tot[len];
+            else if(dig == num) ret += tail + 1LL + dig*tot[len];
+            else ret += dig*tot[len];
+            tail += dig*bs;
+            bs *= hx;
+            ++len;
+        }
+    } else {
+        // 不计算前导零
+        while(x > 0) {
+            dig = x%hx;
+            x /= hx;
+            if(dig > num) ret += bs + dig*tot[len];
+            else if(dig == num) ret += tail + 1LL + dig*tot[len];
+            else ret += dig*tot[len];
+            tail += dig*bs;
+            bs *= hx;
+            ++len;
+        }
+        if(num == 0) {
+            bs = 1;
+            while(xx > 0) {
+                ret -= bs;
+                xx /= hx;
+                bs *= hx;
+            }
+        }
+    }
+    return ret;
+} 
+\end{lstlisting}
+
+\subsection{期望、概率dp}
+
+[讲解博客链接](http://www.cnblogs.com/CzYoL/p/7220088.html)
+
+【期望dp】
+
+求解达到某一目标的期望花费：
+
+因为最终的花费无从知晓（不可能从∞推起），所以期望dp需要倒序求解。
+
+设f[i][j]表示在(i, j)这个状态实现目标的期望值（相当于是差距是多少）。
+
+首先f[n][m] = 0，在目标状态期望值为0。
+
+然后f = (∑f′ × p) + w，f′为上一状态（距离目标更近的那个，倒序），p为从f转移到f′的概率（则从f′转移回f的概率也为p），w为转移的花费。
+
+最后输出初始位置的f即可。
+
+特别的，当转移关系不成环时，期望dp可以线性递推。
+
+但当转移关系成环时，期望dp的最终状态相当于一个已知量，而转移关系相当于一个个方程，可以使用【高斯消元】解决。
+
+【概率dp】
+
+概率dp通常已知初始的状态，然后求解最终达到目标的概率，所以概率dp需要顺序求解。
+
+概率dp相对简单，当前状态只需加上所有上一状态乘上转移概率即可：f = ∑f′i × pi
+
+\subsection{数位 dp}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+int a[20];
+ll dp[20][state];//不同题目状态不同
+ll dfs(int pos,/*state变量*/,bool lead/*前导零*/,bool limit/*数位上界变量*/)//不是每个题都要判断前导零
+{
+    //递归边界，既然是按位枚举，最低位是0，那么pos==-1说明这个数我枚举完了
+    if(pos==-1) return 1;/*这里一般返回1，表示你枚举的这个数是合法的，那么这里就需要你在枚举时必须每一位都要满足题目条件，也就是说当前枚举到pos位，一定要保证前面已经枚举的数位是合法的。不过具体题目不同或者写法不同的话不一定要返回1 */
+    //第二个就是记忆化(在此前可能不同题目还能有一些剪枝)
+    if(!limit && !lead && dp[pos][state]!=-1) return dp[pos][state];
+    /*常规写法都是在没有限制的条件记忆化，这里与下面记录状态是对应，具体为什么是有条件的记忆化后面会讲*/
+    int up=limit?a[pos]:9;//根据limit判断枚举的上界up;这个的例子前面用213讲过了
+    ll ans=0;
+    //开始计数
+    for(int i=0;i<=up;i++)//枚举，然后把不同情况的个数加到ans就可以了
+    {
+        if() ...
+        else if()...
+        ans+=dfs(pos-1,/*状态转移*/,lead && i==0,limit && i==a[pos]) //最后两个变量传参都是这样写的
+        /*这里还算比较灵活，不过做几个题就觉得这里也是套路了
+        大概就是说，我当前数位枚举的数是i，然后根据题目的约束条件分类讨论
+        去计算不同情况下的个数，还有要根据state变量来保证i的合法性，比如题目
+        要求数位上不能有62连续出现,那么就是state就是要保存前一位pre,然后分类，
+        前一位如果是6那么这意味就不能是2，这里一定要保存枚举的这个数是合法*/
+    }
+    //计算完，记录状态
+    if(!limit && !lead) dp[pos][state]=ans;
+    /*这里对应上面的记忆化，在一定条件下时记录，保证一致性，当然如果约束条件不需要考虑lead，这里就是lead就完全不用考虑了*/
+    return ans;
+}
+ll solve(ll x)
+{
+    int pos=0;
+    while(x)//把数位都分解出来
+    {
+        a[pos++]=x%10;//个人老是喜欢编号为[0,pos),看不惯的就按自己习惯来，反正注意数位边界就行
+        x/=10;
+    }
+    return dfs(pos-1/*从最高位开始枚举*/,/*一系列状态 */,true,true);//刚开始最高位都是有限制并且有前导零的，显然比最高位还要高的一位视为0嘛
+}
+\end{lstlisting}
+
+\subsubsection{数字计数 count}
+
+
+给定两个正整数 a 和 b ，求在 [a, b] 中的所有整数中，每个数码(digit)各出现了多少次。
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+using namespace std;
+typedef long long ll;
+const int mod = 1e9 + 7;
+const int maxn = 1e5 + 5;
+ll dp[12][15][15];
+int a[15];
+ll dfs(int pos, int dig, bool lead, bool limit, int cnt) {
+    if(pos == -1) return cnt;
+    if(!limit && !lead && dp[dig][pos][cnt] != -1) return dp[dig][pos][cnt];
+    int num = a[pos];
+    int up = 9;
+    if(limit) up = num;
+    ll ret = 0;
+    for(int i = 0; i <= up; ++i) {
+        int nc = cnt;
+        if(i == dig) {
+            if(dig != 0) ++nc;
+            else if(!lead) ++nc;
+        }
+        ret += dfs(pos - 1, dig, lead && (i == 0), limit && (i == up), nc);
+    }
+    if(!lead && !limit) dp[dig][pos][cnt] = ret;
+    return ret;
+}
+ll solve(ll x, int dig) {
+    int pos = 0;
+    while(x > 0) {
+        a[pos++] = x%10LL;
+        x /= 10LL;
+    }
+    ll ret = dfs(pos - 1, dig, true, true, 0);
+    return ret;
+}
+int main() {
+    ll a, b;
+    for(int i = 0; i < 10; ++i) {
+        for(int j = 0; j <= 13; ++j) {
+            for(int k = 0; k <= 13; ++k) {
+                dp[i][j][k] = -1;
+            }
+        }
+    }
+    while(scanf("%lld%lld", &a, &b) != EOF) {
+        for(int i = 0; i <= 9; ++i) {
+            ll ans = solve(b, i) - solve(a - 1, i);
+            if(i > 0) printf(" ");
+            printf("%lld", ans);
+        }
+        puts("");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{括号序列相关}
+
+括号序列配对时满足贪心性质，从左向右考虑，能配对的括号直接配对，结果不会变差。
+
+\subsubsection{最长合法括号序列}
+
+\begin{lstlisting}[language=C++]
+char str[maxn];
+int dp[maxn];
+stack<int> s;
+int mx, sum;//最长长度，以及最长长度的个数
+void LongestRegularBracketSequence(){
+    mx = 0, sum = 1;
+    int len = strlen(str);
+    for(int i = 0; i < len; i++) {
+        if(str[i] == '('){
+            s.push(i);
+            continue;
+        }
+        if(!s.empty()) {
+            int now = s.top();
+            s.pop();
+            dp[i] = i - now + 1;
+            if(now) dp[i] += dp[now - 1];
+            if(mx < dp[i]) {
+                mx = dp[i];
+                sum = 0;
+            }
+            if(mx == dp[i]) ++sum;
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{区间询问最长合法括号序列}
+
+\begin{lstlisting}[language=C++]
+struct SegTree {
+    int lf, rt;
+    int a, b, c;
+} st[maxn << 2];
+char s[maxn];
+void PushUp(int x) {
+    SegTree &now = st[x];
+    SegTree &lc = st[x << 1];
+    SegTree &rc = st[x << 1 | 1];
+    int ok = min(lc.a, rc.b);
+    now.a = lc.a + rc.a - ok;
+    now.b = lc.b + rc.b - ok;
+    now.c = lc.c + rc.c + ok;
+}
+void Build(int x, int lf, int rt) {
+    SegTree &now = st[x];
+    now.lf = lf; now.rt = rt;
+    now.a = now.b = now.c = 0;
+    if(lf == rt) {
+        if(s[lf] == '(') ++now.a;
+        else ++now.b;
+        return ;
+    }
+    int mid = (lf + rt) >> 1;
+    Build(x << 1, lf, mid);
+    Build(x << 1 | 1, mid + 1, rt);
+    PushUp(x);
+}
+int qa, qb, qc;
+void Query(int x, int lf, int rt) {
+    SegTree &now = st[x];
+    if(now.lf >= lf && now.rt <= rt) {
+        int ok = min(qa, now.b);
+        qa = qa + now.a - ok;
+        qb = qb + now.b - ok;
+        qc = qc + now.c + ok;
+        return ;
+    }
+    int mid = (now.lf + now.rt) >> 1;
+    if(lf <= mid) Query(x << 1, lf, rt);
+    if(rt > mid) Query(x << 1 | 1, lf, rt);
+}
+int main() {
+    scanf("%s", s + 1);
+    int n = strlen(s + 1);
+    Build(1, 1, n);
+    int m; scanf("%d", &m);
+    for(int im = 1; im <= m; ++im) {
+        int l, r; scanf("%d%d", &l, &r);
+        qa = qb = qc = 0;
+        Query(1, l, r);
+        printf("%d\n", qc*2);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{斜率优化 dp}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+// 此处维护下凸壳
+// 若需要维护上凸壳，则需要改变 judge1(), judge2() 中的不等号方向
+ll dp[maxn], up[maxn], down[maxn], k[maxn];
+int mq[maxn];
+bool judge1(int x, int y, int z) {
+    ll v1 = up[y] - up[x];
+    ll v2 = (down[y] - down[x])*k[z];
+    if(v1 <= v2) return true;
+    return false;
+}
+bool judge2(int x, int y, int z) {
+    ll v1 = (up[y] - up[x])*(down[z] - down[y]);
+    ll v2 = (up[z] - up[y])*(down[y] - down[x]);
+    if(v1 >= v2) return true;
+    return false;
+}
+void getZero() {
+
+}
+ll getK(int x) {
+    ll ret = 0;
+    return ret;
+}
+ll getDp(int x, int y) {
+    ll ret = 0;
+    return ret;
+}
+ll getUp(int x) {
+    ll ret = 0;
+    return ret;
+}
+ll getDown(int x) {
+    ll ret = 0;
+    return ret;
+}
+ll solve(int n) {
+    getZero();
+    int lf = 0, rt = 0;
+    for(int i = 0; i <= n; ++i) {
+        k[i] = getK(i);
+        while(lf + 1 < rt && judge1(mq[lf], mq[lf + 1], i)) ++lf;
+        dp[i] = getDp(mq[lf], i);
+        up[i] = getUp(i); down[i] = getDown(i);
+        while(lf + 1 < rt && judge2(mq[rt - 2], mq[rt - 1], i)) --rt;
+        mq[rt++] = i;
+    }
+    return dp[n];
+}
+\end{lstlisting}
+
+\subsubsection{例题}
+
+dp 方程：$dp[i] = min{dp[j] + pre[j] − x[i] × sum[j])} + c[i] + sum[i] × x[i] − pre[i]$
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+ll x[maxn], p[maxn], c[maxn];
+ll sum[maxn], dp[maxn], pre[maxn];
+ll up[maxn], down[maxn];
+int mq[maxn], lf = 0, rt = 1;
+int judge1(int p1, int p2, ll val) {
+    ll dt = up[p2] - up[p1] - (down[p2] - down[p1])*val;
+    if(dt == 0) return 0;
+    if(dt < 0) return -1;
+    return 1;
+}
+int judge2(int p1, int p2, int p3) {
+    ll dt = (up[p3] - up[p2])*(down[p2] - down[p1]) - (up[p2] - up[p1])*(down[p3] - down[p2]);
+    if(dt == 0) return 0;
+    if(dt < 0) return -1;
+    return 1;
+}
+int main(){
+    int n; scanf("%d", &n);
+    for(int i = 1; i <= n; ++i) scanf("%lld%lld%lld", &x[i], &p[i], &c[i]);
+    for(int i = 1; i <= n; ++i) {
+        sum[i] = sum[i - 1] + p[i];
+        pre[i] = pre[i - 1] + p[i]*x[i];
+    }
+    for(int i = 1; i <= n; ++i) {
+        while(rt - lf >= 2 && judge1(mq[lf], mq[lf + 1], x[i]) < 0) ++lf;
+        int id = mq[lf];
+        dp[i] = dp[id] + (sum[i] - sum[id])*x[i] - (pre[i] - pre[id]) + c[i];
+        up[i] = dp[i] + pre[i]; down[i] = sum[i];
+        while(rt - lf >= 2 && judge2(mq[rt - 2], mq[rt - 1], i) < 0) --rt;
+        mq[rt++] = i;
+    }
+    printf("%lld\n", dp[n]);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{四边形不等式}
+
+\subsubsection{基本理论}
+
+如果对于任意的 $a_1 \le a_2 < b_1 \le b_2 $ 有 $m[a_1, b_1] + m[a_2, b_2] \le m[a_1, b_2] + m[a_2, b_1]$，那么 $m[i, j]$ 满足四边形不等式。
+
+设 $m[i, j]$ 表示动态规划的状态量。
+
+$m[i, j]$ 有类似如下的状态转移方程：
+
+$m[i,j] = min\{m[i, k] + m[k, j]\} (i \le k \le j)$
+
+m满足四边形不等式是适用这种优化方法的必要条件
+
+对于一道具体的题目，我们首先要证明它满足这个条件，一般来说用数学归纳法证明，根据题目的不同而不同。
+
+通常的动态规划的复杂度是 $O(n^3)$，我们可以优化到 $O(n^2)$
+
+定义s(i,j)为函数m(i,j)对应的使得m(i,j)取得最小值的k值。
+
+我们可以证明，s[i,j-1]≤s[i,j]≤s[i+1,j]
+
+那么改变状态转移方程为：
+
+m[i,j]=min{m[i,k]+m[k,j]}(s[i,j-1]≤k≤s[i+1,j])
+
+复杂度分析：不难看出，复杂度决定于s的值，以求m[i,i+L]为例，
+
+(s[2,L+1]-s[1,L])+(s[3,L+2]-s[2,L+1])…+(s[n-L+1,n]-s[n-L,n-1])=s[n-L+1,n]-s[1,L]≤n
+所以总复杂度是O(n)
+
+\subsubsection{优化环形石子合并  ($O(n^3)$ To $O(n^2)$)}
+
+N 堆石子摆成一个环。现要将石子有次序地合并成一堆。
+
+规定每次只能选相邻的2堆石子合并成新的一堆，并将新的一堆石子数记为该次合并的代价。
+
+计算将N堆石子合并成一堆的最小代价。
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int inf = 0x3f3f3f3f;
+const ll linf = 0x3f3f3f3f3f3f3f3f;
+const int mod = 1e9 + 7;
+const int maxn = 2e3 + 5;
+ll a[maxn], pre[maxn];
+ll m[maxn][maxn], w[maxn][maxn];
+int s[maxn][maxn], n;
+void init() {
+    for(int i = 1; i <= n; ++i) a[i + n] = a[i];
+    for(int i = 1; i <= 2*n; ++i) {
+        pre[i] = pre[i - 1] + a[i];
+        for(int j = 1; j <= 2*n; ++j) {
+            if(j > i) w[j][i] = linf;
+            else w[j][i] = pre[i] - pre[j - 1];
+            m[i][j] = linf;
+        }
+    }
+    for(int i = 1; i <= 2*n; ++i) {
+        m[i][i] = 0;
+        s[i][i] = i;
+    }
+}
+ll solve() {
+    for(int len = 2; len <= n; ++len) {
+        for(int lf = 1; lf <= 2*n; ++lf) {
+            int rt = lf + len - 1;
+            if(rt >= 2*n) break;
+            for(int mid = s[lf][rt - 1]; mid <= s[lf + 1][rt]; ++mid) {
+                ll now = m[lf][mid] + m[mid + 1][rt] + w[lf][rt];
+                if(now > m[lf][rt]) continue;
+                s[lf][rt] = mid; m[lf][rt] = now;
+            }
+        }
+    }
+    ll ret = linf;
+    for(int i = 1; i <= n; ++i) ret = min(ret, m[i][i + n - 1]);
+    return ret;
+}
+int main() {
+    scanf("%d", &n);
+    for(int i = 1; i <= n; ++i) scanf("%lld", &a[i]);
+    init();
+    ll ans = solve();
+    printf("%lld\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{最大 m 子段和}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e3 + 5;
+ll a[maxn], dp[2][maxn];
+ll MaxSum(int m, int n){
+    memset(dp, 0, sizeof(dp));
+    int now = 1, lst = 0;
+    for(int i = 1; i <= m; i++){
+        dp[now][i] = dp[lst][i - 1] + a[i];
+        ll mx = dp[lst][i - 1];
+        for(int j = i + 1; j <= n - m + i; j++){
+            mx = max(mx, dp[lst][j - 1]);
+            dp[now][j] = max(dp[now][j - 1], mx) + a[j];
+        }
+        swap(now, lst);
+    }
+    ll ret = -linf;
+    for(int j = m; j <= n; ++j) ret = max(ret, dp[lst][j]);
+    return ret;
+}
+\end{lstlisting}
+
+
+\subsection{虚树 DP}
+
+只需按照需求修改 solve() 函数并用 lca() 维护相关信息即可。
+
+给定一棵有 $n$ 个节点的树，$q$ 次询问，每次询问给 $k$ 个点，求至少删除多少点，使得这 $k$ 个点两两不属于同一联通块 $n, q, \sigma k \le 100000$
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef unsigned long long ull;
+const int inf = 0x3f3f3f3f;
+const ll linf = 0x3f3f3f3f3f3f3f3f;
+const ll mod = 998244353LL;
+
+const int maxn = 1e5 + 5;
+const int maxm = log2(maxn) + 2;
+struct Graph {
+    struct Edge {
+        int to, nxt;
+    } E[maxn << 1];
+    int head[maxn], tot;
+    void init(int n) {
+        for (int i = 0; i <= n; ++i) head[i] = -1;
+        tot = 0;
+    }
+    void add_edge (int u, int v) {
+        E[tot] = {v, head[u]};
+        head[u] = tot++;
+    }
+} G, VG;
+int dfn[maxn], cnt;
+int d[maxn], fa[maxn][maxm];
+void dfs(int x, int y) {
+    dfn[x] = ++cnt;
+    for (int i = 1; i < maxm; ++i) {
+        fa[x][i] = fa[fa[x][i - 1]][i - 1];
+    }
+    for (int i = G.head[x]; i != -1; i = G.E[i].nxt) {
+        int to = G.E[i].to;
+        if (to == y) continue;
+        fa[to][0] = x;
+        d[to] = d[x] + 1;
+        dfs(to, x);
+    }
+}
+int lca(int a, int b) {
+    if (d[a] > d[b]) swap(a, b);
+    int dt = d[b] - d[a];
+    for (int i = 0; (1 << i) <= dt; ++i) {
+        if (((dt >> i) & 1) == 0) continue;
+        b = fa[b][i];
+    }
+    for (int i = maxm - 1; i >= 0; --i) {
+        if (fa[a][i] == fa[b][i]) continue;
+        a = fa[a][i]; b = fa[b][i];
+    }
+    if (a == b) return a;
+    return fa[a][0];
+}
+int id[maxn];
+int st[maxn], tp;
+int vis[maxn];
+ll dp[maxn][2];
+void solve(int x, int cq) {
+    ll sum0 = 0, sum1 = 0;
+    ll mx = -inf;
+    for (int i = VG.head[x]; i != -1; i = VG.E[i].nxt) {
+        int to = VG.E[i].to;
+        solve(to, cq);
+        if (d[to] > d[x] + 1) dp[to][0] = min(dp[to][0], dp[to][1] + 1LL);
+        sum0 += dp[to][0];
+        sum1 += dp[to][1];
+        mx = max(mx, dp[to][0] - dp[to][1]);
+    }
+    if (vis[x] == cq) {
+        dp[x][0] = inf;
+        dp[x][1] = sum0;
+    } else {
+        dp[x][0] = min(sum0, 1LL + sum1);
+        dp[x][1] = min(dp[x][0], sum0 - mx);
+    }
+    if (dp[x][0] > inf) dp[x][0] = inf;
+    if (dp[x][1] > inf) dp[x][1] = inf;
+}
+void vir_tree (int cq) {
+    int k; scanf("%d", &k);
+    for (int i = 0; i < k; ++i) {
+        scanf("%d", &id[i]);
+        vis[id[i]] = cq;
+    }
+    sort(id, id + k, [&](const int &x, const int &y) -> bool {
+        return dfn[x] < dfn[y];
+    });
+    tp = 0;
+    VG.head[1] = -1; st[tp++] = 1;
+    for (int i = 0; i < k; ++i) {
+        int x = id[i];
+        if (x == 1) continue;
+        int lx = lca(x, st[tp - 1]);
+        if (lx != st[tp - 1]) {
+            while (tp > 1 && dfn[lx] < dfn[st[tp - 2]]) {
+                VG.add_edge(st[tp - 2], st[tp - 1]);
+                --tp;
+            }
+            if (tp > 1 && dfn[lx] > dfn[st[tp - 2]]) {
+                VG.head[lx] = -1;
+                VG.add_edge(lx, st[tp - 1]);
+                st[tp - 1] = lx;
+            } else {
+                VG.add_edge(lx, st[tp - 1]);
+                --tp;
+            }
+        }
+        VG.head[x] = -1; st[tp++] = x;
+    }
+    for (int i = 0; i < tp - 1; ++i) {
+        VG.add_edge(st[i], st[i + 1]);
+    }
+    solve(1, cq);
+    int ans = min(dp[1][0], dp[1][1]);
+    if (ans == inf) ans = -1;
+    printf("%d\n", ans);
+}
+int main() {
+    int n; scanf("%d", &n);
+    G.init(n);
+    VG.init(n);
+    for (int i = 1; i < n; ++i) {
+        int u, v; scanf("%d%d", &u, &v);
+        G.add_edge(u, v);
+        G.add_edge(v, u);
+    }
+    cnt = fa[1][0] = 0;
+    d[1] = 1;
+    dfs(1, -1);
+    for (int i = 1; i <= n; ++i) vis[i] = 0;
+    int q; scanf("%d", &q);
+    for (int cq = 1; cq <= q; ++cq) {
+        vir_tree(cq);
+    }
+    return 0;
+}
+\end{lstlisting}

@@ -1,0 +1,593 @@
+
+
+\section{线性代数}
+
+\subsection{矩阵快速幂}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+#define mod(x) ((x) % MOD)
+const ll MOD = 1e9 + 7;
+const int maxn = 1e2 + 5;
+int n;// 矩阵大小
+struct mat {
+    ll m[maxn][maxn];
+    mat operator *(const mat& a) const { //  矩阵乘法
+        mat ret;
+        for(int i = 0; i < n; ++i) {
+            for(int j = 0; j < n; ++j) {
+                ll x = 0;
+                for(int k = 0; k < n; ++k) {
+                    x += mod(m[i][k]*a.m[k][j]);
+                    x = mod(x);
+                }
+                ret.m[i][j] = mod(x);
+            }
+        }
+        return ret;
+    }
+} unit; //  单元矩阵
+void init_unit() {
+    for(int i = 0; i < n; i++) unit.m[i][i] = 1;
+    return ;
+}
+// 调用 powMat() 前应首先初始化单位矩阵 init_unit()
+mat powMat(mat a, ll x) {
+    mat ret = unit;
+    while(x){
+        if(x&1) ret = ret*a;
+        x >>= 1;
+        a = a*a;
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{斐波那契数列第 N 项}
+
+斐波那契数列矩阵形式
+
+$$
+M =
+\begin{bmatrix}
+    1 & 1 \\
+    1 & 0
+\end{bmatrix}
+$$
+
+$$F_{n} = M^{n} [1][0]$$
+
+通过矩阵快速幂求解
+
+\subsubsection{一般线性递推式}
+
+$f_i = a_{1} f_{i - 1} + a_{2} f_{i - 2} + \cdots + a_{k} f_{i - k}$
+
+$
+A =
+\begin{bmatrix}
+    a_{1} & a_{2} & a_{3} & \cdots & a_{k} \\
+    1 & 0 & 0 & \cdots & 0 \\
+    0 & 1 & 0 & \cdots & 0 \\
+    \vdots & \vdots & \vdots & \ddots & \vdots \\
+    0 & 0 & \cdots & 1 & 0
+\end{bmatrix}
+$
+
+\subsubsection{矩阵幂的和}
+
+求解 $S = A + A^2 + A^3 + ...... + A^k, ( 1 <= n <= 30, 1 <= k <= 10^9, 1 <= M <= 10^4)$
+
+令
+
+$S_k = I + \cdots + A^{k - 1}$
+
+则有
+
+$$
+\begin{bmatrix}
+    A_{k} \\
+    S_{k}
+\end{bmatrix} =
+\begin{bmatrix}
+    A & 0\\
+    I & I
+\end{bmatrix} ^{k}
+\begin{bmatrix}
+    I \\
+    0
+\end{bmatrix}
+$$
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+#include <cstdio>
+using namespace std;
+const int mod = 10;
+int N;
+struct Mat {
+    int a[85][85];
+    Mat() {
+        for(int i = 0; i < N; ++i) {
+            for(int j = 0; j < N; ++j) {
+                a[i][j] = 0;
+            }
+        }
+    }
+    Mat operator *(const Mat& rhs) const {
+        Mat ret;
+        for(int i = 0; i < N; ++i) {
+            for(int j = 0; j < N; ++j) {
+                int& x = ret.a[i][j];
+                x = 0;
+                for(int k = 0; k < N; ++k) {
+                    x = (x + a[i][k]*rhs.a[k][j])%mod;
+                }
+            }
+        }
+        return ret;
+    }
+};
+void init_unit(Mat& unit) {
+    for(int i = 0; i < N; ++i) {
+        for(int j = 0; j < N; ++j) {
+            unit.a[i][j] = 0;
+        }
+        unit.a[i][i] = 1;
+    }
+}
+Mat pw(Mat a, int n, Mat& unit) {
+    Mat ret = unit;
+    while(n > 0) {
+        if(n & 1) ret = ret*a;
+        a = a*a;
+        n >>= 1;
+    }
+    return ret;
+}
+int main() {
+    int n, k;
+    while(scanf("%d%d", &n, &k) != EOF) {
+        if(n == 0) break;
+        N = 2*n;
+        Mat a, unit;
+        init_unit(unit);
+        for(int i = 0; i < n; ++i) {
+            for(int j = 0; j < n; ++j) {
+                scanf("%d", &a.a[i][j]);
+                a.a[i][j] %= mod;
+            }
+        }
+        for(int i = 0; i < n; ++i) {
+            a.a[i + n][i] = 1;
+            a.a[i + n][i + n] = 1;
+        }
+        Mat b = pw(a, k + 1, unit);
+        for(int i = 0; i < n; ++i) {
+            for(int j = 0; j < n; ++j) {
+                int x = b.a[i + n][j];
+                if(i == j) x = (x - 1 + mod)%mod;
+                if(j > 0) printf(" ");
+                printf("%d", x);
+            }
+            puts("");
+        }
+        puts("");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{BM 算法（线性递推式）}
+
+\begin{lstlisting}[language=C++]
+typedef long long ll;
+#define rep(i,a,n) for (int i=a;i<n;i++)
+#define per(i,a,n) for (int i=n-1;i>=a;i--)
+#define pb push_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define fi first
+#define se second
+#define SZ(x) ((ll)(x).size())
+typedef vector<ll> VI;
+typedef pair<ll,ll> PII;
+const ll mod = 1e9+7;
+ll powmod(ll a,ll b) {ll res=1;a%=mod; assert(b>=0); for(;b;b>>=1){if(b&1)res=res*a%mod;a=a*a%mod;}return res;}
+// head
+
+ll _,n;
+namespace linear_seq {
+    const int N=10010;
+    ll res[N],base[N],_c[N],_md[N];
+
+    vector<ll> Md;
+    void mul(ll *a,ll *b,ll k) {
+        rep(i,0,k+k) _c[i]=0;
+        rep(i,0,k) if (a[i]) rep(j,0,k) _c[i+j]=(_c[i+j]+a[i]*b[j])%mod;
+        for (ll i=k+k-1;i>=k;i--) if (_c[i])
+            rep(j,0,SZ(Md)) _c[i-k+Md[j]]=(_c[i-k+Md[j]]-_c[i]*_md[Md[j]])%mod;
+        rep(i,0,k) a[i]=_c[i];
+    }
+    ll solve(ll n,VI a,VI b) {
+//         a 系数 b 初值 b[n+1]=a[0]*b[n]+...
+        for(int i = 0; i < a.size(); i++)
+            printf("sss  %d\n", a[i]);
+        ll ans=0,pnt=0;
+        ll k=SZ(a);
+        assert(SZ(a)==SZ(b));
+        rep(i,0,k) _md[k-1-i]=-a[i];_md[k]=1;
+        Md.clear();
+        rep(i,0,k) if (_md[i]!=0) Md.push_back(i);
+        rep(i,0,k) res[i]=base[i]=0;
+        res[0]=1;
+        while ((1ll<<pnt)<=n) pnt++;
+        for (ll p=pnt;p>=0;p--) {
+            mul(res,res,k);
+            if ((n>>p)&1) {
+                for (ll i=k-1;i>=0;i--) res[i+1]=res[i];res[0]=0;
+                rep(j,0,SZ(Md)) res[Md[j]]=(res[Md[j]]-res[k]*_md[Md[j]])%mod;
+            }
+        }
+        rep(i,0,k) ans=(ans+res[i]*b[i])%mod;
+        if (ans<0) ans+=mod;
+        return ans;
+    }
+    VI BM(VI s) {
+        VI C(1,1),B(1,1);
+        ll L=0,m=1,b=1;
+        rep(n,0,SZ(s)) {
+            ll d=0;
+            rep(i,0,L+1) d=(d+(ll)C[i]*s[n-i])%mod;
+            if (d==0) ++m;
+            else if (2*L<=n) {
+                VI T=C;
+                ll c=mod-d*powmod(b,mod-2)%mod;
+                while (SZ(C)<SZ(B)+m) C.pb(0);
+                rep(i,0,SZ(B)) C[i+m]=(C[i+m]+c*B[i])%mod;
+                L=n+1-L; B=T; b=d; m=1;
+            } else {
+                ll c=mod-d*powmod(b,mod-2)%mod;
+                while (SZ(C)<SZ(B)+m) C.pb(0);
+                rep(i,0,SZ(B)) C[i+m]=(C[i+m]+c*B[i])%mod;
+                ++m;
+            }
+        }
+        return C;
+    }
+    ll gao(VI a,ll n) {
+        VI c=BM(a);
+        c.erase(c.begin());
+        rep(i,0,SZ(c)) c[i]=(mod-c[i])%mod;
+        return solve(n,c,VI(a.begin(),a.begin()+SZ(c)));
+    }
+};
+
+int main() {
+    while (~scanf("%d",&n)) {
+        vector<int>v;
+        v.push_back(1);
+        v.push_back(2);
+        v.push_back(4);
+        v.push_back(7);
+        v.push_back(13);
+        v.push_back(24);
+        //VI{1,2,4,7,13,24}
+        printf("%d\n", linear_seq::gao(v,n-1));
+    }
+}
+\end{lstlisting}
+
+\subsection{高斯消元}
+
+高斯消元基本思想是将方程式的系数和常数化为矩阵，通过将矩阵通过行变换成为阶梯状（上三角矩阵），然后从小往上逐一求解。
+
+\subsubsection{代数意义下}
+
+求解下列线性方程组：
+
+a[0][0]*x0 + a[0][1]*x1 + ... + a[0][n - 1]*x{n - 1} == a[0][n]
+...
+...
+a[n - 1][0]*x0 + a[n - 1][1]*x1 + ... + a[n - 1][n - 1]*x{n - 1} == a[n - 1][n]
+
+最终结果为：
+
+x0 = a[0][n]
+...
+...
+x{n - 1} = a[n - 1][n]
+
+若无解，则返回 false
+
+\begin{lstlisting}[language=C++]
+double a[maxn][maxn];
+bool gauss(int n) {
+    for(int i = 0; i < n; ++i){
+        int r = i;
+        for(int j = i + 1; j < n; j++) if(fabs(a[j][i]) > fabs(a[r][i])) r = j;
+/*
+* 浮点高斯消元中找到最大绝对值的系数来消元本来是为了优化精度
+* 如果在整数的模意义下，这种行为就没有意义了
+* 此时我们只需要找到第i行及以下任意一个系数非零的元来消即可。
+* for(int j = i ; j < n; j++) if(a[j][i]!=0) { r = j; break;}
+*/
+        if(r != i) for(int j = 0; j <= n; j++) swap(a[i][j], a[r][j]);
+
+        for(int j = n; j >= i; --j)
+            for(int k = i + 1; k < n; ++k)
+                a[k][j] -= a[k][i]/a[i][i]*a[i][j];
+    }
+    for(int i = n - 1 ; i >= 0 ; --i){
+        for(int j = i + 1 ; j < n ; j++){
+            double val = a[i][j]*a[j][n];
+            a[i][n] -= val;
+        }
+        if(fabs(a[i][i]) < 1e-10){
+            if(fabs(a[i][n]) > 1e-10) return false;
+            continue;
+        }
+        a[i][n] = a[i][n]/a[i][i];
+    }
+    return true;
+}
+\end{lstlisting}
+
+\subsection{线性基（区间子集异或最值）}
+
+\begin{lstlisting}[language=C++]
+struct Linear_Basis {
+    int tv, tb; // total variable, total base
+    ll b[64], nb[64];
+    void init() {
+        tv = tb = 0;
+        memset(b, 0, sizeof(b));
+        memset(nb, 0, sizeof(nb));
+    }
+    bool ist(ll x){
+        ++tv;
+        for(int i = 62; i >= 0; --i) {
+            if (x & (1LL << i)) {
+                if(!b[i]) {
+                    b[i] = x;
+                    break;
+                }
+                x ^= b[i];
+            }
+        }
+        if(x <= 0) return false;
+        return true;
+    }
+    ll Max(ll x) {
+        ll ret = x;
+        for (int i = 62; i >= 0; --i) ret = max(ret, ret ^ b[i]);
+        return ret;
+    }
+    ll Min(ll x) {
+        ll ret = x;
+        for (int i = 0; i <= 62; ++i)
+            if (b[i]) ret ^= b[i];
+        return ret;
+    }
+    void rebuild() {
+        for (int i = 62; i >= 0; --i)
+            for (int j = i - 1; j >= 0; --j)
+                if (b[i] & (1LL << j)) b[i] ^= b[j];
+        tb = 0;
+        for (int i = 0; i <= 62; ++i)
+            if (b[i]) nb[tb++] = b[i];
+    }
+    ll Kth_Max(ll k) {
+        if (tv != tb) --k;
+        if (k >= (1LL << tb)) return -1LL;
+        ll ret = 0;
+        for (int i = 62; i >= 0; --i)
+            if (k & (1LL << i)) ret ^= nb[i];
+        return ret;
+    }
+} LB;
+\end{lstlisting}
+
+\subsection{线性规划问题（单纯形法）}
+
+例题 bzoj 3112: [Zjoi2013] 防守战线
+
+战线可以看作一个长度为 n 的序列，现在需要在这个序列上建塔来防守敌
+兵，在序列第 i 号位置上建一座塔有 Ci 的花费，且一个位置可以建任意多的塔
+费用累加计算。有 m个区间[L1, R1], [L2, R2], …, [Lm, Rm]，在第 i 个区间
+的范围内要建至少 Di 座塔。求最少花费。
+
+对其对偶问题使用单纯形法
+
+standard:
+
+$max z = c_0*x_0 + ... + c_{n - 1}*x_{n - 1}$
+
+$a_{0 0}*x_0 + a_{0 1}*x_1 ... + a_{0 n - 1}*x_{n - 1} <= b_0$
+
+$\cdots$
+
+$a_{m - 1 0}*x_0 + a_{m 1}*x_1 ... + a_{m - 1 n - 1}*x_{n - 1} <= b_{m - 1}$
+
+
+\begin{lstlisting}[language=C++]
+const double M = 1e100;
+const double thres = 1e50;
+const double eps = 1e-6;
+int sgn(double x) {
+    if(fabs(x) < eps) return 0;
+    if(x > 0) return 1;
+    return -1;
+}
+namespace simplex {
+    const int maxr = 2e3 + 5;
+    const int maxc = 2e4 + 5;
+    int row, column;
+    double a[maxr][maxc], b[maxr], c[maxc], s[maxc];
+    int rid[maxr], cid[maxc];
+    void output() {
+        puts("");
+        printf("row: %d column: %d\n", row, column);
+        puts("++++++++++++++++++++++++++++++++++++++++");
+        printf("max z = ");
+        for(int i = 0; i < column; ++i) {
+            if(i > 0) printf(" + ");
+            printf("%.2f*x_%d", c[i], i);
+        }
+        puts("");
+        puts("subject to: ");
+        for(int i = 0; i < row; ++i) {
+            for(int j = 0; j < column; ++j) {
+                if(j > 0) printf(" + ");
+                printf("%.2f*x_%d", a[i][j], j);
+            }
+            printf(" = %.2f\n", b[i]);
+        }
+        puts("++++++++++++++++++++++++++++++++++++++++");
+        printf("row id:");
+        for(int i = 0; i < row; ++i) {
+            printf(" %d", rid[i]);
+        }
+        puts("");
+        printf("column id:");
+        for(int i = 0; i < column; ++i) {
+            printf(" %d", cid[i]);
+        }
+        puts("");
+        puts("++++++++++++++++++++++++++++++++++++++++");
+        double z = 0.0;
+        printf("z = ");
+        for(int i = 0; i < row; ++i) {
+            if(i > 0) printf("+ ");
+            if(rid[i] < column) {
+                printf("%.2f*%.2f ", b[i], c[rid[i]]);
+                z += b[i]*c[rid[i]];
+            } else {
+                printf("%.2f*%.2f ", b[i], 0.0);
+            }
+        }
+        printf("= %.2f\n", z);
+        puts("++++++++++++++++++++++++++++++++++++++++");
+        puts("");
+    }
+    void init(int m, int n) {
+        row = m; column = n + 1;
+        c[n] = -M;
+        for(int i = 0; i < row; ++i) {
+            a[i][n] = -1.0;
+            rid[i] = column + i;
+        }
+        for(int i = 0; i < column; ++i) {
+            cid[i] = i;
+            s[i] = c[i];
+        }
+        // output();
+    }
+    bool getRC(int &rv, int &cv) {
+        rv = -1; cv = -1;
+        double sigma = -M;
+        for(int i = 0; i < column; ++i) {
+            if(cv == -1 || s[i] > sigma) {
+                sigma = s[i];
+                cv = i;
+            }
+        }
+        // printf("cv: %d sigma: %.2f\n", cv, sigma);
+        if(sgn(sigma) <= 0) return 1;
+        double theta = M;
+        for(int i = 0; i < row; ++i) {
+            if(sgn(a[i][cv]) <= 0) continue;
+            double ntheta = b[i]/a[i][cv];
+            if(rv == -1 || sgn(ntheta - theta) < 0) {
+                theta = ntheta;
+                rv = i;
+            }
+        }
+        if(theta > thres) return 2;
+        return 0;
+    }
+    void pivot(const int &rv, const int &cv) {
+        assert(rv != -1 && cv != -1);
+        b[rv] /= a[rv][cv];
+        for(int i = 0; i < column; ++i) {
+            if(i == cv) continue;
+            a[rv][i] /= a[rv][cv];
+        }
+        a[rv][cv] = 1.0/a[rv][cv];
+        for(int i = 0; i < row; ++i) {
+            if(i == rv || sgn(a[i][cv]) == 0) continue;
+            b[i] -= a[i][cv]*b[rv];
+            for(int j = 0; j < column; ++j) {
+                if(j == cv) continue;
+                a[i][j] -= a[i][cv]*a[rv][j];
+            }
+            a[i][cv] = -a[i][cv];
+        }
+        for(int i = 0; i < column; ++i) {
+            if(i == cv) continue;
+            s[i] -= s[cv]*a[rv][i];
+        }
+        s[cv] = -s[cv]*a[rv][cv];
+        swap(rid[rv], cid[cv]);
+    }
+    int solve(int m, int n, double &z) {
+        init(m, n);
+        while(true) {
+            int rv, cv;
+            int sta = getRC(rv, cv);
+            if(sta == 2) return 2;
+            if(sta == 1) break;
+            pivot(rv, cv);
+        }
+        z = 0.0;
+        for(int i = 0; i < row; ++i) {
+            if(rid[i] >= column) continue;
+            z += b[i]*c[rid[i]];
+        }
+        if(z < -thres) return 1;
+        return 0;
+    }
+}
+
+int main() {
+    int n, m; scanf("%d%d", &n, &m);
+    for(int i = 0; i < n; ++i) {
+        scanf("%lf", &simplex::b[i]);
+    }
+    for(int i = 0; i < m; ++i) {
+        int l, r; scanf("%d%d%lf", &l, &r, &simplex::c[i]);
+        --l, --r;
+        for(int j = 0; j < n; ++j) {
+            if(j >= l && j <= r) {
+                simplex::a[j][i] = 1.0;
+            } else {
+                simplex::a[j][i] = 0.0;
+            }
+        }
+    }
+    double ans = 0.0;
+    int sta = simplex::solve(n, m, ans);
+    if(sta == 0) {
+        printf("%.0f\n", ans);
+        // printf("max z = %.2f\n", ans);
+    } else if(sta == 1) {
+        assert(false);
+        // printf("no feasible solution\n");
+    } else {
+        assert(false);
+        // printf("unbounded solution. (z -> inf)\n");
+    }
+    return 0;
+}
+/*
+input:
+    5 3
+    1 5 6 3 4
+    2 3 1
+    1 5 4
+    3 5 2
+output:
+    11
+*/
+\end{lstlisting}

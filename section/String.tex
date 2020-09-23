@@ -1,0 +1,854 @@
+
+
+\section{字符串}
+
+\subsection{最长回文子串 （Manacher 算法）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e5 + 5;
+int len;
+char t[maxn << 1];
+int p[maxn << 1];
+char str[maxn];
+void Manacher(){
+    int mx = 0, id = -1;
+    len = strlen(str);
+    for(int i = 0; i <= len*2; ++i) {
+        p[i] = 0;
+        t[i] = 0;
+    }
+    for(int i = 0; i <= len*2; ++i) {
+        if((i & 1) == 1) {
+            t[i] = str[i/2];
+        } else {
+            t[i] = '*';
+        }
+    }
+    for(int i = 1; i < len*2; ++i) {
+        if(mx > i) {
+            p[i] = min(p[2*id - i], mx - i);
+        } else {
+            p[i] = 1;
+        }
+        while(i - p[i] >= 0 && t[i + p[i]] == t[i - p[i]]) {
+            ++p[i];
+        }
+        if(p[i] + i > mx) {
+            mx = p[i] + i;
+            id = i;
+        }
+    }
+    for(int i = 0; i < len*2; ++i) {
+        int pos = i/2;
+        int plen = p[i] - 1;
+        int lf = pos - plen/2;
+        int rt = lf + plen - 1;
+        if(lf > rt) {
+            continue;
+        }
+        // str[lf, rt] is longest palindrome around str[pos]
+        printf("[%d, %d]\n", lf, rt);
+        for(int j = lf; j <= rt; ++j) {
+            putchar(str[j]);
+        }
+        puts("");
+    }
+}
+\end{lstlisting}
+
+\subsection{KMP 算法（单母串匹配）}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 10;
+int nxt[maxn];
+char s1[maxn], s2[maxn];
+int len1, len2;
+void getNext(){
+    int i = 0, j = -1;
+    nxt[0] = -1;
+    while(i < len2) {
+        if(j == -1 || s2[i] == s2[j]) nxt[++i] = ++j;
+        else j = nxt[j];
+    }
+}
+
+void kmp() {
+    int i = 0, j = 0;
+    getNext();
+    while(i < len1){
+        if(j == -1 || s1[i] == s2[j]) ++i, ++j;
+        else j = nxt[j];
+        // 匹配成功 s1[i - len2, i) = s2[0, len2)
+        if(j == len2) { 
+//            printf("%d\n", i - len2);
+            j = nxt[j];
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{循环节}
+
+如果对于 next 数组中的 i， 符合 
+
+$$i\%( i - next[i] ) == 0 \&\& next[i] != 0$$
+
+则说明字符串循环，而且
+
+循环节长度为： i - next[i]
+
+循环次数为： i / ( i - next[i] )
+
+对于一个不完整的循环串要补充多少个才能使得其完整
+
+$$(循环节长度) - len\%(循环节长度)$$
+
+即
+
+$$(len - next[len]) - len\%(len - next[len])$$
+
+\subsubsection{拓展kmp （求 T 与 {S的每一个后缀：s[i ~ n - 1]} 的最长公共前缀）}
+
+\begin{lstlisting}[language=C++]
+int nxt[maxn], ex[maxn];
+void getNext(char *str) {
+    int i = 0, j, pos, len = strlen(str);
+    nxt[0] = len;
+    while(str[i] == str[i + 1] && i + 1 < len) ++i;
+    nxt[1] = i; pos = 1;
+    for(i = 2; i < len; ++i){
+        if(nxt[i - pos] + i < nxt[pos] + pos) {
+            nxt[i] = nxt[i - pos];
+            continue;
+        }
+        j = nxt[pos] + pos - i;
+        if(j < 0) j = 0;
+        while(i + j < len && str[j] == str[j + i]) ++j;
+        nxt[i] = j; pos = i;
+    }
+}
+
+void exkmp(char *s1, char *s2){
+    int i = 0, j, pos, l1 = strlen(s1), l2 = strlen(s2);
+    getNext(s2);
+    while(s1[i] == s2[i] && i < l2 && i < l1) ++i;
+    ex[0] = i; pos = 0;
+    for(i = 1; i < l1; ++i){
+        if(nxt[i - pos] + i < ex[pos] + pos) {
+            ex[i] = nxt[i - pos];
+            continue;
+        }
+        j = ex[pos] + pos - i;
+        if(j < 0) j = 0;
+        while(i + j < l1 && j < l2 && s1[j + i] == s2[j]) ++j;
+        ex[i] = j; pos = i;
+    }
+}
+\end{lstlisting}
+
+\subsection{AC自动机（多母串匹配）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+const int TrieSize = 1e6 + 5;
+const int SigmaSize = 26;
+
+namespace Trie {
+    int T[TrieSize][SigmaSize];
+    int num[TrieSize];
+    bool vis[TrieSize];
+    int tot;
+    void init() {
+        tot = 0;
+        num[0] = 0;
+        vis[0] = false;
+        for(int i = 0; i < SigmaSize; ++i) {
+            T[0][i] = 0;
+        }
+    }
+    int getID(char ch) {
+        int ret = ch - 'a';
+        return ret;
+    }
+    int newNode() {
+        ++tot;
+        num[tot] = 0;
+        vis[tot] = false;
+        for(int i = 0; i < SigmaSize; ++i) {
+            T[tot][i] = 0;
+        }
+        return tot;
+    }
+    void ist(char s[]) {
+        int len = strlen(s);
+        int now = 0;
+        for(int i = 0; i < len; ++i) {
+            int id = getID(s[i]);
+            if(T[now][id] == 0) {
+                T[now][id] = newNode();
+            }
+            now = T[now][id];
+        }
+        ++num[now];
+    }
+}
+namespace ACAM {
+    using namespace Trie;
+    int F[TrieSize];
+    int lst[TrieSize];
+    void getFail() {
+        queue<int> q;
+        F[0] = lst[0] = 0;
+        for(int i = 0; i < SigmaSize; ++i) {
+            int to = T[0][i];
+            if(to != 0) {
+                F[to] = lst[to] = 0;
+                q.push(to);
+            }
+        }
+        while(!q.empty()) {
+            int now = q.front(); q.pop();
+            for(int i = 0; i < SigmaSize; ++i) {
+                int to = T[now][i];
+                if(to == 0) {
+                    T[now][i] = T[F[now]][i];
+                } else {
+                    q.push(to);
+                    int fn = F[now];
+                    while(fn != 0 && T[fn][i] == 0) {
+                        fn = F[fn];
+                    }
+                    F[to] = T[fn][i];
+                    if(num[F[to]] > 0) {
+                        lst[to] = F[to];
+                    } else {
+                        lst[to] = lst[F[to]];
+                    }
+                }
+            }
+        }
+    }
+    int calc(int now) {
+        int ret = 0;
+        while(now != 0 && !vis[now]) {
+            vis[now] = true;
+            ret += num[now];
+            now = lst[now];
+        }
+        return ret;
+    }
+    int query(char s[]) {
+        int len = strlen(s);
+        int ret = 0, now = 0;
+        for(int i = 0; i < len; ++i) {
+            int id = getID(s[i]);
+            now = T[now][id];
+            if(num[now] > 0) {
+                ret += calc(now);
+            } else {
+                int nxt = lst[now];
+                if(nxt != 0) {
+                    ret += calc(nxt);
+                }
+            }
+        }
+        return ret;
+    }
+    void show() {
+        puts("****************");
+        for(int i = 0; i <= tot; ++i) {
+            printf("Trie[%d]: \n", i);
+            printf("num: %d, fail: %d, last: %d\n", num[i], F[i], lst[i]);
+            printf("to:");
+            for(int j = 0; j < SigmaSize; ++j) {
+                if(T[i][j] == 0) continue;
+                printf(" (%c, %d)", j + 'a', T[i][j]);
+            }
+            puts("");
+        }
+        puts("****************");
+    }
+}
+char s[maxn];
+int main() {
+    int T; scanf("%d", &T);
+    for(int cs = 1; cs <= T; ++cs) {
+        Trie::init();
+        int n; scanf("%d", &n);
+        for(int i = 0; i < n; ++i) {
+            scanf("%s", s);
+            Trie::ist(s);
+        }
+        // ACAM::show();
+        ACAM::getFail();
+        // ACAM::show();
+        scanf("%s", s);
+        printf("%d\n", ACAM::query(s));
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{循环串的最小表示法}
+
+\begin{lstlisting}[language=C++]
+char s[maxn];
+int getMin() {
+    int n = strlen(s);
+    int i = 0, j = 1, k = 0;
+    while(i < n && j < n && k < n){
+        int dt = s[(i + k)%n] - s[(j + k)%n];
+        if(dt == 0) ++k;
+        else{
+            if(dt > 0) i += k + 1;
+            else j += k + 1;
+            if(i == j) ++j;
+            k = 0;
+        }
+    }
+    // 返回字典序最小的循环串的起始位置
+    int ret = min(i, j);
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{序列自动机}
+
+字符串下标需从 1 开始，会方便很多
+
+nxt[i][j] 表示第 i 个字符的下一个 j 字母出现的位置(在原串中的下标)
+
+cnt[i][j] s表示第 i 个字符后面 j 字母的个数
+
+\begin{lstlisting}[language=C++]
+char s[maxn];
+int nxt[maxn][27], pos[27];
+int cnt[maxn][27], num[27];
+void getSeqAM() {
+    int len = strlen(s + 1);
+    for(int j = 0; j < 26; ++j) {
+        pos[j] = 0;
+        num[j] = 0;
+    }
+    for(int i = len; i >= 1; --i) {
+        for(int j = 0; j < 26; ++j) {
+            nxt[i][j] = pos[j];
+            cnt[i][j] = num[j];
+        }
+        int id = s[i] - 'a';
+        pos[id] = i; ++num[id];
+    }
+    for(int j = 0; j < 26; ++j) {
+        nxt[0][j] = pos[j];
+        cnt[0][j] = num[j];
+    }
+}
+\end{lstlisting}
+
+\subsection{任意子串 Hash}
+
+字符串下标需从 1 开始
+
+本质为倒序排列的 key 进制数
+
+\begin{lstlisting}[language=C++]
+typedef unsigned long long ull; // %llu
+const ull key = 137; // 233 769
+const ull mod = 998244353; // 1000000007
+ull H[maxn], xp[maxn];
+void Init_Hash(char *s){
+    int n = strlen(s + 1);
+    H[0] = 0; xp[0] = 1;
+    for(int i = 1; i <= n; ++i) H[i] = H[i - 1]*key + (s[i] - 'a');
+    for(int i = 1; i <= n; ++i) xp[i] = xp[i - 1]*key;
+}
+ull Hash(int l, int r){
+    return H[r] - H[l - 1] * xp[r - l + 1];
+}
+\end{lstlisting}
+
+\subsection{shift-and 算法}
+
+给你一个 $n$ 位数，每一位可以有 $m _ i$ 种选择。
+
+给定一个需要匹配的母串，让你输出母串中有多少个可行的 $n$ 位子串。
+
+\begin{lstlisting}[language=C++]
+bitset<1005> b[10], ans;
+char s[maxn];
+int main() {
+    int n; scanf("%d", &n);
+    for(int i = 0; i < n; ++i) {
+        int m; scanf("%d", &m);
+        while(m--) {
+            int x; scanf("%d", &x);
+            b[x].set(i);
+        }
+    }
+    scanf("%s", s);
+    int len = strlen(s);
+    for(int i = 0; i < len; ++i) {
+        ans.set(0);
+        ans &= b[s[i] - '0'];
+        if(ans[n - 1] == 1) {
+            // printf("[%d, %d]\n", i - n + 1, i);
+            char ch = s[i + 1];
+            s[i + 1] = '\0';
+            puts(s + i - n + 1);
+            s[i + 1] = ch;
+        }
+        ans <<= 1;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{后缀数组}
+
+后缀数组诱导排序(SuffixArray-InducedSort)
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+namespace SA {
+    int s[maxn << 1], t[maxn << 1], p[maxn], cnt[maxn], cur[maxn];
+    int n, sa[maxn], rank[maxn], height[maxn], mi[maxn][25];
+    #define pushS(x) sa[cur[s[x]]--] = x
+    #define pushL(x) sa[cur[s[x]]++] = x
+    #define inducedSort(v) fill_n(sa, n, -1); fill_n(cnt, m, 0); \
+        for(int i = 0; i < n; ++i) cnt[s[i]]++; \
+        for(int i = 1; i < m; ++i) cnt[i] += cnt[i-1]; \
+        for(int i = 0; i < m; ++i) cur[i] = cnt[i]-1; \
+        for(int i = n1 - 1; i != -1; --i) pushS(v[i]); \
+        for(int i = 1; i < m; ++i) cur[i] = cnt[i-1]; \
+        for(int i = 0; i < n; ++i) if(sa[i] > 0 &&  t[sa[i] - 1]) pushL(sa[i] - 1); \
+        for(int i = 0; i < m; ++i) cur[i] = cnt[i]-1; \
+        for(int i = n - 1;  i != -1; --i) if(sa[i] > 0 && !t[sa[i]-1]) pushS(sa[i]-1)
+    void sais(int n, int m, int *s, int *t, int *p) {
+        int n1 = t[n - 1] = 0, ch = rank[0] = -1, *s1 = s + n;
+        for(int i = n - 2; i != -1; --i) t[i] = s[i] == s[i + 1] ? t[i + 1] : s[i] > s[i + 1];
+        for(int i = 1; i < n; ++i) rank[i] = (t[i-1] && !t[i]) ? (p[n1] = i, n1++) : -1;
+        inducedSort(p);
+        for(int i = 0, x, y; i < n; ++i) if(~(x = rank[sa[i]])) {
+            if(ch < 1 || p[x+1] - p[x] != p[y+1] - p[y]) ++ch;
+            else for(int j = p[x], k = p[y]; j <= p[x + 1]; ++j, ++k)
+                if((s[j] << 1 | t[j]) != (s[k] << 1 | t[k])) {++ch; break;}
+            s1[y = x] = ch;
+        }
+        if(ch + 1 < n1) sais(n1, ch + 1, s1, t + n, p + n1);
+        else for(int i = 0; i < n1; i++) sa[s1[i]] = i;
+        for(int i = 0; i < n1; i++) s1[i] = p[sa[i]];
+        inducedSort(s1);
+    }
+    template<typename T>
+    int mapCharToInt(int n, const T *str) {
+        int m = *max_element(str, str + n);
+        fill_n(rank, m + 1, 0);
+        for(int i = 0; i < n; i++) rank[str[i]] = 1;
+        for(int i = 0; i < m; i++) rank[i + 1] += rank[i];
+        for(int i = 0; i < n; i++) s[i] = rank[str[i]] - 1;
+        return rank[m];
+    }
+    template<typename T>
+    void suffixArray(int n, const T *str) {
+        int m = mapCharToInt(++n, str);
+        sais(n, m, s, t, p);
+        for(int i = 0; i < n; i++) rank[sa[i]] = i;
+        for(int i = 0, h = height[0] = 0; i < n - 1; ++i) {
+            int j = sa[rank[i] - 1];
+            while(i + h < n && j + h < n && s[i + h] == s[j + h]) ++h;
+            if(height[rank[i]] = h) --h;
+        }
+    }
+    void RMQ_init() {
+        for(int i = 0; i < n; ++i) mi[i][0] = height[i + 1];
+        for(int j = 1; (1 << j) <= n; ++j){
+            for(int i = 0; i + (1 << j) <= n; ++i){
+                mi[i][j] = min(mi[i][j - 1], mi[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+    int RMQ(int L, int R) {
+        int k = 0, len = R - L + 1;
+        while((1 << (k + 1)) <= len) ++k;
+        return min(mi[L][k], mi[R - (1 << k) + 1][k]);
+    }
+    int LCP(int i, int j) {
+        if(rank[i] > rank[j]) swap(i, j);
+        return RMQ(rank[i], rank[j] - 1);
+    }
+    template<typename T>
+    void init(T *str){
+        n = strlen(str);
+        str[n] = 0;
+        suffixArray(n, str);
+        RMQ_init();
+    }
+    void print() {
+        puts("Suffix Array Print Start");
+        for(int i = 0; i <= n; ++i) {
+            printf("s[%d] = %d, sa = %d rank = %d height = %d\n", i, s[i], sa[i], rank[i], height[i]);
+        }
+        puts("Suffix Array Print End");
+    }
+};
+\end{lstlisting}
+
+\subsection{后缀自动机（将所有子串压缩到一个 DAG 中）}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+const int MaxState = 2*maxn; // 至少开字符串长度的两倍
+const int SigmaSize = 26;
+template<class T> class SAM{
+private:
+    int tot, lst, len;
+    int trans[MaxState][SigmaSize], mx[MaxState], mi[MaxState], link[MaxState];
+    int newState() {
+        const int x = tot++;
+        for(int i = 0; i < SigmaSize; ++i) {
+            trans[x][i] = -1;
+        }
+        link[x] = -1;
+        mx[x] = mi[x] = 0;
+        return x;
+    }
+    void init() {
+        tot = 0;
+        lst = newState();
+    }
+    int getId(T x) {
+        return (int)(x - 'a');
+        // return (int)(x - 1);
+    }
+    void add(int ch) {
+        int p = lst;
+        int np = lst = newState();
+        mx[np] = mx[p] + 1;
+        while(p != -1 && trans[p][ch] == -1) {
+            trans[p][ch] = np;
+            p = link[p];
+        }
+        if(p == -1) {
+            mi[np] = 1;
+            link[np] = 0;
+            return ;
+        }
+        int q = trans[p][ch];
+        if(mx[p] + 1 == mx[q]){
+            mi[np] = mx[q] + 1;
+            link[np] = q;
+            return ;
+        }
+        int nq = newState();
+        mx[nq] = mx[p] + 1;
+        link[nq] = link[q];
+        for(int i = 0; i < SigmaSize; ++i) {
+            trans[nq][i] = trans[q][i];
+        }
+        mi[np] = mi[q] = mx[nq] + 1;
+        link[np] = link[q] = nq;
+        while(p != -1 && trans[p][ch] == q) {
+            trans[p][ch] = nq;
+            p = link[p];
+        }
+        mi[nq] = mx[link[nq]] + 1;
+    }
+    int tax[maxn], topo[MaxState]; // Topology order: topo[0, tot - 1]
+    void getTopo() {
+        for(int i = 0; i <= len; ++i) tax[i] = 0;
+        for(int i = 0; i < tot; ++i) ++tax[mx[i]];
+        for(int i = 1; i <= len; ++i) tax[i] += tax[i - 1];
+        for(int i = 0; i < tot; ++i) topo[--tax[mx[i]]] = i;
+    }
+    void show() {
+        for(int i = 0; i < tot; ++i) {
+            printf("State %d: \n", i);
+            printf("transition:");
+            for(int j = 0; j < SigmaSize; ++j) {
+                printf(" %d", trans[i][j]);
+            }
+            puts("");
+            printf("link: %d, min length: %d, max length: %d\n", link[i], mi[i], mx[i]);
+            puts("+++++++++++++++++++++");
+        }
+        printf("Topology order:");
+        for(int i = 0; i < tot; ++i) {
+            printf(" %d", topo[i]);
+        }
+        puts("");
+    }
+public:
+    SAM() {
+        tot = 0;
+    }
+    int id[maxn]; // always need
+    void solve(int n, T a[]) {
+        len = n;
+        init();
+        for(int i = 0; i < len; ++i) {
+            id[i] = getId(a[i]);
+            add(id[i]);
+        }
+        // 此行以下根据题目要求进行修改
+        getTopo();
+        // show();
+
+    }
+};
+\end{lstlisting}
+
+调用方式
+
+\begin{lstlisting}[language=C++]
+SAM<char> sam;
+char a[maxn];
+int main() {
+    scanf("%s", a);
+    int n = strlen(a);
+    sam.solve(n, a);
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{字符串本质不同的非空子串个数}
+
+\begin{lstlisting}[language=C++]
+void solve(int n, T a[]) {
+    len = n;
+    init();
+    for(int i = 0; i < len; ++i) {
+        id[i] = getId(a[i]);
+        add(id[i]);
+    }
+    ll ans = 0;
+    for(int i = 1; i < tot; ++i) {
+        ans += (ll)(mx[i] - mi[i] + 1);
+    }
+    printf("%lld\n", ans);
+}
+\end{lstlisting}
+
+\subsubsection{字符串的所有长度为 K 的子串出现次数最多的子串的出现次数}
+
+\begin{lstlisting}[language=C++]
+int cnt[MaxState], num[maxn], ans[maxn];
+void solve(int n, T a[]) {
+    len = n;
+    init();
+    for(int i = 0; i < len; ++i) {
+        id[i] = getId(a[i]);
+        add(id[i]);
+    }
+    // 此行以下根据题目要求进行修改
+    getTopo();
+    // show();
+    for(int i = 0; i < tot; ++i) cnt[i] = 0;
+    int p = 0;
+    for(int i = 0; i < len; ++i) {
+        p = trans[p][id[i]];
+        ++cnt[p];
+    }
+    for(int i = tot - 1; i >= 0; --i) {
+        int x = topo[i];
+        if(link[x] != -1) {
+            cnt[link[x]] += cnt[x];
+        }
+    }
+    for(int i = 0; i <= len; ++i) {
+        num[i] = 0;
+    }
+    for(int i = 0; i < tot; ++i) {
+        num[mx[i]] = max(num[mx[i]], cnt[i]);
+    }
+    int val = 0;
+    for(int i = len; i >= 1; --i) {
+        val = max(val, num[i]);
+        ans[i] = val;
+    }
+    for(int i = 1; i <= len; ++i) {
+        printf("%d\n", ans[i]);
+    }
+}
+\end{lstlisting}
+
+\subsubsection{最长不重叠子串}
+
+\begin{lstlisting}[language=C++]
+int lf[MaxState], rt[MaxState]; // 该状态（的结尾位置）出现的最左位置与最右位置 max{endpos}, min{endpos}
+void solve(int n, T a[]) {
+    len = n;
+    init();
+    for(int i = 0; i < len; ++i) {
+        id[i] = getId(a[i]);
+        add(id[i]);
+    }
+    // 此行以下根据题目要求进行修改
+    getTopo();
+    // show();
+    for(int i = 0; i < tot; ++i) {
+        lf[i] = inf;
+        rt[i] = -inf;
+    }
+    int p = 0;
+    for(int i = 0; i < len; ++i) {
+        p = trans[p][id[i]];
+        lf[p] = min(lf[p], i);
+        rt[p] = max(rt[p], i);
+    }
+    for(int i = tot - 1; i >= 0; --i) {
+        int x = topo[i];
+        int lx = link[x];
+        if(lx != -1) {
+            lf[lx] = min(lf[lx], lf[x]);
+            rt[lx] = max(rt[lx], rt[x]);
+        }
+    }
+    int ans = 0;
+    for(int i = 1; i < tot; ++i) {
+        // printf("%d: %d [%d, %d]\n", i, mx[i], lf[i], rt[i]);
+        int now = min(mx[i], rt[i] - lf[i]);
+        ans = max(ans, now);
+    }
+    printf("%d\n", ans);
+}
+\end{lstlisting}
+
+\subsubsection{字典序第 K 小子串}
+
+对于一个给定长度为 N 的字符串，求它的第 K 小子串。
+
+T 为 0 则表示不同位置的相同子串算作一个。T 为 1 则表示不同位置的相同子串算作多个。
+
+\begin{lstlisting}[language=C++]
+ll cnt[MaxState], sum[MaxState];
+void dfs(int p, int k) {
+    k -= cnt[p];
+    if(k <= 0) {
+        return ;
+    }
+    for(int i = 0; i < SigmaSize; ++i) {
+        int to = trans[p][i];
+        if(to == -1) {
+            continue;
+        }
+        if(sum[to] >= k) {
+            printf("%c", 'a' + i);
+            dfs(to, k);
+            return ;
+        }
+        k -= sum[to];
+    }
+}
+void solve(int n, T a[]) {
+    len = n;
+    init();
+    for(int i = 0; i < len; ++i) {
+        id[i] = getId(a[i]);
+        add(id[i]);
+    }
+    // 此行以下根据题目要求进行修改
+    getTopo();
+    // show();
+    int t, k; scanf("%d%d", &t, &k);
+    for(int i = 0; i < tot; ++i) {
+        cnt[i] = 0;
+    }
+    if(t == 0) {
+        for(int i = 0; i < tot; ++i) {
+            cnt[i] = 1;
+        }
+    } else {
+        int p = 0;
+        for(int i = 0; i < len; ++i) {
+            p = trans[p][id[i]];
+            ++cnt[p];
+        }
+        for(int i = tot - 1; i > 0; --i) {
+            int x = topo[i];
+            int lx = link[x];
+            cnt[lx] += cnt[x];
+        }
+    }
+    cnt[0] = 0;
+    for(int i = 0; i < tot; ++i) {
+        sum[i] = cnt[i];
+    }
+    for(int i = tot - 1; i >= 0; --i) {
+        int x = topo[i];
+        for(int j = 0; j < SigmaSize; ++j) {
+            int to = trans[x][j];
+            if(to != -1) {
+                sum[x] += sum[to];
+            }
+        }
+    }
+    if(sum[0] < k) {
+        printf("-1");
+    } else {
+        dfs(0, k);
+    }
+    puts("");
+}
+\end{lstlisting}
+
+\subsubsection{多个字符串的最长公共子串}
+
+以第一个字符串建 SAM，其余字符串在 SAM 上进行转移并维护相关信息
+
+\begin{lstlisting}[language=C++]
+char t[maxn];
+int ans[MaxState], num[MaxState];
+void solve(int n, T a[]) {
+    len = n;
+    init();
+    for(int i = 0; i < len; ++i) {
+        id[i] = getId(a[i]);
+        add(id[i]);
+    }
+    // 此行以下根据题目要求进行修改
+    getTopo();
+    // show();
+    for(int i = 0; i < tot; ++i) {
+        ans[i] = mx[i];
+    }
+    while(scanf("%s", t) != EOF) {
+        // if(t[0] == 'Q') break;
+        int lt = strlen(t);
+        for(int i = 0; i < tot; ++i) {
+            num[i] = 0;
+        }
+        int p = 0, now = 0;
+        for(int i = 0; i < lt; ++i) {
+            int cid = getId(t[i]);
+            if(trans[p][cid] == -1) {
+                while(p != -1 && trans[p][cid] == -1) p = link[p];
+                if(p == -1) {
+                    p = 0;
+                    now = 0;
+                } else {
+                    now = mx[p] + 1;
+                    p = trans[p][cid];
+                }
+            } else {
+                ++now;
+                p = trans[p][cid];
+            }
+            num[p] = max(num[p], now);
+        }
+        for(int i = tot - 1; i >= 1; --i) {
+            int x = topo[i];
+            int to = link[x];
+            num[to] = max(num[to], num[x]);
+            if(num[to] > mx[to]) num[to] = mx[to];
+        }
+        for(int i = 1; i < tot; ++i) ans[i] = min(ans[i], num[i]);
+    }
+    int lcs = 0;
+    for(int i = 1; i < tot; ++i) lcs = max(lcs, ans[i]);
+    printf("%d\n", lcs);
+}    
+\end{lstlisting}

@@ -1,0 +1,334 @@
+
+
+\section{组合数学}
+
+\subsection{组合数}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e6 + 5;
+const ll mod = 1e9 + 7;
+ll fac[maxn], invFac[maxn];
+ll pw(ll a, ll b){
+    ll ret = 1;
+    while(b){
+        if(b&1) ret = (ret*a)%mod;
+        a = (a*a)%mod;
+        b >>= 1;
+    }
+    return ret;
+}
+void getFacInv(int n){
+    fac[0] = 1;
+    for(int i = 1; i <= n; ++i) fac[i] = (fac[i - 1]*i)%mod;
+    invFac[n] = pw(fac[n], mod - 2);
+    for(int i = n - 1; i >= 0; --i) invFac[i] = (invFac[i + 1]*(i + 1))%mod;
+}
+ll C(int a, int b){
+    if(b < 0 || b > a) return 0LL;
+    ll ret = (fac[a]*invFac[b])%mod;
+    ret = (ret*invFac[a - b])%mod;
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{Lucas 定理（求解 n, m 大，小模数取模的组合数）}
+
+在取模意义下：
+
+$C(n,m) = (C(n\%mod,m\%mod)*C(n/mod,m/mod))\%mod$
+
+\begin{lstlisting}[language=C++]
+ll Lucas(ll a, ll b){
+    if(b == 0) return 1;
+    ll ret = (C(a%mod, b%mod, mod)*Lucas(a/mod, b/mod))%mod;
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{康托展开与逆康托展开（全排列到自然数的双射）}
+
+\begin{lstlisting}[language=C++]
+int a[12], fac[12];
+bool vis[12];
+void getfac(int n){
+    fac[0] = 1;
+    for(int i = 1; i < n; ++i) fac[i] = fac[i - 1]*i;
+}
+int cantor(int n){
+    int ret = 0;
+    for(int i = 0; i < n; ++i){
+        int cnt = 0;
+        for(int j = i + 1; j < n; ++j) if(a[i] > a[j]) ++cnt;
+        ret += cnt*fac[n - 1 - i];
+    }
+    return ret;
+}
+void decantor(int x, int n){
+    for(int i = 1; i <= n; ++i) vis[i] = false;
+    int tot = 0;
+    for(int i = n; i >= 1; --i){
+        int q = x/fac[i - 1];
+        int cnt = 0;
+        for(int j = 1; j <= n; ++j){
+            if(vis[j]) continue;
+            if(++cnt > q){
+                a[tot++] = j;
+                vis[j] = true;
+                break;
+            }
+        }
+        x = x%fac[i - 1];
+    }
+}
+\end{lstlisting}
+
+\subsection{快速傅里叶变换 FFT （加速加法操作卷积运算 O(nlogn)）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e5 + 5;
+const int fMaxn = maxn << 2; // fMaxn >= 4*maxn (1025 need 4096)
+namespace FFT {
+    // typedef long double ld;
+    const double pi = acos(-1.0);
+    struct Complex {
+        double r, i;
+        Complex(double r = 0, double i = 0):r(r), i(i) {};
+        Complex operator + (const Complex & rhs) {
+            return Complex(r + rhs.r, i + rhs.i);
+        }
+        Complex operator - (const Complex & rhs) {
+            return Complex(r - rhs.r, i - rhs.i);
+        }
+        Complex operator * (const Complex &rhs) {
+            return Complex(r * rhs.r - i * rhs.i, i * rhs.r + r * rhs.i);
+        }
+    } va[fMaxn], vb[fMaxn], vc[fMaxn];
+    void change(Complex F[], int len) {
+        int j = len >> 1;
+        for(int i = 1; i < len - 1; ++i) {
+            if(i < j) {
+                swap(F[i], F[j]);
+            }
+            int k = len >> 1;
+            while(j >= k) {
+                j -= k;
+                k >>= 1;
+            }
+            if(j < k) {
+                j += k;
+            }
+        }
+    }
+    void fft(Complex F[], int len, int t) {
+        change(F, len);
+        for(int h = 2; h <= len; h <<= 1) {
+            Complex wn(cos(-t*2.0*pi/h), sin(-t*2.0*pi/h));
+            for(int j = 0; j < len; j += h) {
+                Complex E(1, 0);
+                for(int k = j; k < j + h/2; ++k) {
+                    Complex u = F[k];
+                    Complex v = E*F[k + h/2];
+                    F[k] = u + v;
+                    F[k + h/2] = u - v;
+                    E = E*wn;
+                }
+            }
+        }
+        if(t == -1) {
+            for(int i = 0; i < len; i++) {
+                F[i].r /= len;
+            }
+        }
+    }
+    template<class T>
+    int init(T a[], T b[], int la, int lb) {
+        int lc = 1, mi = 2*max(la, lb);
+        while(lc < mi) {
+            lc <<= 1;
+        }
+        for(int i = 0; i < la; ++i) {
+            va[i] = {(double)a[i], 0.0};
+        }
+        for(int i = la; i < lc; ++i) {
+            va[i] = {0.0, 0.0};
+        }
+        for(int i = 0; i < lb; ++i) {
+            vb[i] = {(double)b[i], 0.0};
+        }
+        for(int i = lb; i < lc; ++i) {
+            vb[i] = {0.0, 0.0};
+        }
+        return lc;
+    }
+    template<class T>
+    int solve(T a[], T b[], T c[], int la, int lb) { // id: [0, la), [0, lb), [0, lc)
+        int lc = init(a, b, la, lb);
+        fft(va, lc, 1);
+        fft(vb, lc, 1);
+        for(int i = 0; i < lc; ++i) {
+            vc[i] = va[i]*vb[i];
+        }
+        fft(vc, lc, -1);
+        for(int i = 0; i < lc; ++i) {
+            c[i] = vc[i].r; // double
+            // c[i] = (int)round(vc[i].r); // int
+            // c[i] = (ll)round(vc[i].r); // ll
+        }
+        return lc;
+    }
+}
+\end{lstlisting}
+
+\subsection{n 个 m 边形划分平面}
+
+用 n 个 m 边方形最多可以把平面分成 S(n, m) = 2 + (n - 1)*n*m 个区域
+
+\subsection{高维前缀和（对子集（超集）求和）}
+
+\begin{lstlisting}[language=C++]
+void GetSum(int n, int mx) {
+    // sum[S] = \Sigma sum[T], T \in S （T 是 S 的子集）
+    // 对子集求和
+    // for(int i = 0; i < n; ++i) {
+    //     for(int j = 0; j <= mx; ++j) {
+    //         if((j & (1 << i)) != 0) sum[j] += sum[j ^ (1 << i)];
+    //     }
+    // }
+
+    // sum[S] = \Sigma sum[T], S \in T （T 是 S 的超集）
+    // 对超集求和
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j <= mx; ++j) {
+            if((j & (1 << i)) != 0) sum[j ^ (1 << i)] += sum[j];
+        }
+    }
+}
+// GetSum(int(floor(log2(1000000)) + 1), 1000000);
+// GetSum(n, (1 << n) - 1);
+\end{lstlisting}
+
+\subsection{快速沃尔什变换 FWT （加速位操作卷积操作 O(nlogn)）}
+
+$$H[x] = \sum \limits _ {i \space OP \space j = x} F[i]*G[j]$$
+
+的位操作卷积（OP 代表一种位运算，比如：与、或、异或）
+
+\begin{lstlisting}[language=C++]
+const int mod = 1e9 + 7;
+// inv2 = pw(2, p - 2, p);
+const int inv2 = 5e8 + 4; 
+// ty == 1: FWT, ty == -1: IFWT
+void FWT(int a[], int n, int ty){  
+    for(int d = 1; d < n; d <<= 1)  
+        for(int m = d << 1, i = 0; i < n; i += m)  
+            for(int j = 0; j < d; ++j){  
+                int x = a[i + j], y = a[i + j + d];  
+                if(ty == 1) {
+                    a[i + j] = (x + y)%mod;
+                    a[i + j + d] = (x - y + mod)%mod;  
+                    //xor: a[i + j] = x + y; a[i + j + d] = x - y;  
+                    //and: a[i + j] = x + y;
+                    //or: a[i + j + d] = x + y;
+                } else {
+                    a[i + j] = 1LL*(x + y)*inv2%mod;
+                    a[i + j + d] = (1LL*(x - y)*inv2%mod + mod)%mod;
+                    //xor: a[i + j] = (x + y)/2; a[i + j + d] = (x - y)/2;
+                    //and: a[i + j] = x - y;
+                    //or: a[i + j + d] = y - x;
+                }
+            }  
+}
+void solve(int a[], int b[], int n){  
+    FWT(a, n, 1);
+    FWT(b, n, 1);
+    for(int i = 0; i < n; ++i) {
+        a[i] = 1LL*a[i]*b[i]%mod;
+    }  
+    FWT(a, n, -1);
+}
+\end{lstlisting}
+
+\subsection{整数划分}
+
+\subsubsection{划分为不同整数}
+
+将 $N (1 <= N <= 50000)$ 分为若干个不同整数的和，有多少种不同的划分方式，例如：n = 6，{6} {1, 5} {2, 4} {1, 2, 3}，共4种。由于数据较大，输出 Mod $10^9 + 7$ 的结果即可。
+
+$F[i][j]$ 表示将数 $i$ 分为 $j$ 份的方案数总和。
+
+于是便有了状态转移方程：
+
+$$f[i][j] := f[i - j][j] + f[i - j][j - 1]$$
+
+下面来具体解释一下这个方程:
+
+1、$f[i - j][j]$ 表示的是将i分为不包含1(min >= 2)的方案总个数，例如，6( = 9 - 3)分成3份可以分为{1, 2, 3}，则9可以分为{1 + 1, 2 + 1, 3 + 1} -> {2, 3, 4} 仅1种
+
+2、$f[i - j][j - 1]$ 表示的是将i分为包含 1 (min = 1)的方案总个数，例如，6( = 9 - 3)分成2( = 3 - 1)可以分为{0, 1, 5}{0, 2, 4}
+
+则 9 可以分为 {0 + 1, 1 + 1, 5 + 1} {0 + 1, 2 + 1, 4 + 1} -> {1, 2, 6}{1, 3, 5}（共 2 种）
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int mod = 1e9 + 7;
+const int maxn = 5e4 + 5;
+int dp[maxn][405];
+int main() {
+    int n; scanf("%d", &n);
+    int m = sqrt(2*n) + 1;
+    dp[0][0] = 1;
+    for(int i = 1; i <= n; ++i) {
+        for(int j = 1; j <= m; ++j) {
+            if(j > i) break;
+            dp[i][j] = (dp[i - j][j] + dp[i - j][j - 1])%mod;
+        }
+    }
+    int ans = 0;
+    for(int i = 1; i <= m; ++i) ans = (ans + dp[n][i])%mod;
+    printf("%d\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{可存在相同整数}
+
+将 $N (1 <= N <= 50000)$ 分为若干个整数的和，有多少种不同的划分方式，例如：n = 4，{4}  {1,3}  {2,2}  {1,1,2} {1,1,1,1}，共 5 种。由于数据较大，输出 Mod $10^9 + 7$ 的结果即可。
+
+欧拉的五边形定理：
+
+$P(n)$ 表示 $n$ 的划分种数
+
+$$P(n) = \sum_{k \ge 1} (P(n - \frac{k(3k - 1)}{2}) + P(n - \frac{k(3k + 1)}{2}))$$
+
+n < 0 时，P(n) = 0, n = 0 时, P(n) = 1
+
+\begin{lstlisting}[language=C++]
+const int mod = 1e9 + 7;
+const int maxn = 5e4 + 5;
+int dp[maxn];
+void solve() {
+    int n; scanf("%d", &n);
+    dp[0] = 1;
+    for(int i = 1; i <= n; ++i) {
+        dp[i] = 0;
+        for(int j = 1; ; ++j) {
+            int k1 = j*(3*j - 1)/2;
+            int k2 = j*(3*j + 1)/2;
+            if(k1 > i && k2 > i) break;
+            int f;
+            if(j%2 == 1) f = 1;
+            else f = -1;
+            if(k1 <= i) dp[i] += f*dp[i - k1];
+            dp[i] %= mod;
+            if(k2 <= i) dp[i] += f*dp[i - k2];
+            dp[i] %= mod;
+            if(dp[i] < 0) dp[i] += mod;
+        }
+    }
+    printf("%d\n", dp[n]);
+}
+\end{lstlisting}

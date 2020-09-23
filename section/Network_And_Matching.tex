@@ -1,0 +1,468 @@
+
+
+\section{网络流与匹配问题}
+
+\subsection{二分图匹配}
+
+\subsubsection{KM 算法 $O(n ^ 3)$}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e2 + 10 ; // 点的个数
+const int inf = 0x3f3f3f3f;
+int lx[maxn], ly[maxn], slack[maxn];
+int match[maxn];
+int g[maxn][maxn];
+int X, Y; // X点集大小，Y点集大小
+bool visx[maxn], visy[maxn];
+void init(){
+    for(int i = 1; i <= X; i++) // 根据X点集点的编号修改循环起始
+        for(int j = 1; j <= Y; j++) // 根据Y点集点的编号修改循环起始
+            g[i][j] = -inf; // 根据题意更改初始化值
+    return ;
+}
+// 调用初始化函数后读图，由于使用邻接矩阵存图，根据题意判重边，处理重边信息
+int path(int x){
+    visx[x] = true;
+    for(int i = 1; i <= Y; i++) {
+        if(visy[i])
+            continue;
+        int tmp = lx[x] + ly[i] - g[x][i];
+        if(tmp == 0){
+            visy[i] = true;
+            if(match[i] == -1 || path(match[i])){
+                match[i] = x;
+                return true;
+            }
+        }
+        else
+            slack[i] = min(slack[i], tmp);
+    }
+    return false;
+}
+int KM(){ // 返回二分图权值和最大的完备匹配
+    memset(ly, false, sizeof(ly));
+    memset(match, -1, sizeof(match));
+    for(int i = 1; i <= X; i++) { // 根据X点集点的编号修改循环起始
+        lx[i] = -inf;
+        for(int j = 1; j <= Y; j++){ // 根据Y点集点的编号修改循环起始
+            lx[i] = max(lx[i], g[i][j]);
+        }
+    }
+    for(int i = 1; i <= X; i++) { // 根据X点集点的编号修改循环起始
+        memset(slack, inf, sizeof(slack));
+        while(true) {
+            memset(visx, false, sizeof(visx));
+            memset(visy, false, sizeof(visy));
+            if(path(i))
+                break;
+            int d = inf;
+            for(int j = 1; j <= Y; j++){ // 根据Y点集点的编号修改循环起始
+                if(!visy[j])
+                    d = min(d, slack[j]);
+            }
+            for(int j = 1; j <= Y; j++){ // 根据Y点集点的编号修改循环起始
+                if(visx[j])
+                    lx[j] -= d ;
+            }
+            for(int j = 1; j <= Y; j++){ // 根据Y点集点的编号修改循环起始
+                if(visy[j])
+                    ly[j] += d;
+                else
+                    slack[j] -=d;
+            }
+        }
+    }
+    int ans = 0;
+    for(int i = 1; i <= Y; i++) // 根据Y点集点的编号修改循环起始
+        ans += g[match[i]][i]; // 注意根据是否可以完全匹配加判断语句
+    return ans;
+}
+\end{lstlisting}
+
+\subsubsection{HK 算法 （非稠密图 $O(n\sqrt{n})$）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e5 + 5;
+int Nl, Nr, now;
+int matchl[maxn], matchr[maxn], levell[maxn], levelr[maxn], visited[maxn];
+vector<int> g[maxn];
+int q[maxn];
+bool bfs() {
+    int* begin(q);
+    int* end(q);
+    bool ret = false;
+    for (int i = 1; i <= Nl; ++i) {
+        if (matchl[i]) {
+            levell[i] = 0;
+        } else {
+            levell[i] = 1;
+            *end++ = i;
+        }
+    }
+    for (int i = 1; i <= Nr; ++i) levelr[i] = 0;
+    while (begin != end) {
+        int u = (*begin++);
+        int sz = g[u].size();
+        for (int i = 0; i < sz; ++i) {
+            int to = g[u][i];
+            if (levelr[to] == 0) {
+                levelr[to] = levell[u] + 1;
+                if (matchr[to]) {
+                    levell[matchr[to]] = levelr[to] + 1;
+                    *end++ = matchr[to];
+                }
+                else
+                    ret = true;
+            }
+        }
+    }
+    return ret;
+}
+int dfs(int u) {
+    int sz = g[u].size();
+    for (int i = 0; i < sz; ++i) {
+        int to = g[u][i];
+        if (levelr[to] == levell[u] + 1 && visited[to] != now) {
+            visited[to] = now;
+            if (matchr[to] == 0 || dfs(matchr[to])) {
+                matchr[to] = u; matchl[u] = to;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+inline int HK() {
+    int ret = 0;
+    while(bfs()) {
+        ++now;
+        for(int i = 1; i <= Nl; ++i)
+            if(!matchl[i]) ret += dfs(i);
+    }
+    return ret;
+}
+void clr() {
+    for(int i = 1; i <= Nl; ++i) {
+        g[i].clear();
+        matchl[i] = 0;
+        levell[i] = 0;
+    }
+    now = 0;
+    for(int i = 1; i <= Nr; ++i) {
+        matchr[i] = 0;
+        levelr[i] = 0;
+        visited[i] = 0;
+    }
+}
+\end{lstlisting}
+
+\subsection{最大流}
+
+\subsubsection{最大流（Dinic 算法）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+const int maxm = 2e5 + 5;
+const int inf = 0x3f3f3f3f;
+struct Edge {
+    int to, nxt;
+    int w;
+} E[maxm << 1];
+int head[maxn], tot;
+int n, m, s, t; // vertex number, edge number, source id, sink id
+void init_edge() {
+    // 1 ~ n
+    for(int i = 1; i <= n; ++i) head[i] = -1;
+    tot = 0;
+}
+// undirected edge: add_edge(u, v, w); add_edge(u, v, w);
+// directed edge: add_edge(u, v, w); add_edge(u, v, 0);
+void add_edge(int u, int v, int w) {
+    E[tot] = {v, head[u], w};
+    head[u] = tot++;
+}
+int dep[maxn];
+bool bfs() {
+    if(s == t) return true;
+    for(int i = 1; i <= n; ++i) dep[i] = 0;
+    queue<int> q;
+    dep[s] = 1; q.push(s);
+    while(!q.empty()) {
+        int x = q.front(); q.pop();
+        for(int i = head[x]; i != -1; i = E[i].nxt) {
+            int to = E[i].to; int w = E[i].w;
+            if(w == 0 || dep[to] != 0) continue;
+            dep[to] = dep[x] + 1;
+            q.push(to);
+            if(to == t) return true;
+        }
+    }
+    return false;
+}
+int cur[maxn];
+int dfs(int x, int flow) {
+    if(x == t) return flow;
+    int ret = 0;
+    for(int &i = cur[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; int w = E[i].w;
+        if(w == 0 || dep[to] != dep[x] + 1) continue;
+        int now = dfs(to, min(flow - ret, w));
+        if(now > 0) {
+            E[i].w -= now;
+            E[i ^ 1].w += now;
+            ret += now;
+            if(ret == flow) break;
+        }
+    }
+    return ret;
+}
+int dinic() {
+    int ret = 0;
+    while(bfs()) {
+        for(int i = 1; i <= n; ++i) cur[i] = head[i];
+        ret += dfs(s, inf);
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{最小费用最大流（dinic + SPFA）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+const int maxm = 2e5 + 5;
+const int inf = 0x3f3f3f3f;
+struct Edge {
+    int to, nxt;
+    int cost, flow;
+} E[maxm << 1];
+int head[maxn], tot;
+int n, m, s, t; // point, edge, source, sink
+int min_cost, max_flow;
+void init_edge() {
+    for(int i = 1; i <= n; ++i) { // 1 ~ n
+        head[i] = -1;
+    }
+    tot = 0;
+}
+void add_edge(int u, int v, int cost, int flow) {
+    E[tot] = {v, head[u], cost, flow};
+    head[u] = tot++;
+}
+void add_network_edge(int u, int v, int cost, int flow) {
+    add_edge(u, v, cost, flow);
+    add_edge(v, u, -cost, 0);
+}
+int dist[maxn];
+bool inq[maxn];
+bool spfa() {
+    for(int i = 1; i <= n; ++i) {
+        dist[i] = inf;
+        inq[i] = false;
+    }
+    queue<int> q;
+    q.push(s);
+    dist[s] = 0; inq[s] = true;
+    while(!q.empty()) {
+        int x = q.front(); q.pop();
+        for(int i = head[x]; i != -1; i = E[i].nxt) {
+            int to = E[i].to, d = E[i].cost + dist[x], f = E[i].flow;
+            if(f == 0 || d >= dist[to]) continue;
+            dist[to] = d;
+            if(!inq[to]) {
+                inq[to] = true;
+                q.push(to);
+            }
+        }
+        inq[x] = false;
+    }
+    if(dist[t] == inf) return false;
+    return true;
+}
+int cur[maxn];
+bool vis[maxn];
+int dfs(int x, int flow) {
+    if(x == t) {
+        max_flow += flow;
+        return flow;
+    }
+    vis[x] = true;
+    int ret = 0;
+    for(int &i = cur[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to, d = dist[x] + E[i].cost, f = E[i].flow;
+        if(vis[to] || f == 0 || d != dist[to]) continue;
+        int now = dfs(to, min(flow - ret, f));
+        if(now > 0) {
+            E[i].flow -= now;
+            E[i ^ 1].flow += now;
+            min_cost += E[i].cost*now;
+            ret += now;
+            if(ret == flow) break;
+        }
+    }
+    return ret;
+}
+void min_cost_max_flow() {
+    min_cost = 0; max_flow = 0;
+    while(spfa()) {
+        for(int i = 1; i <= n; ++i) {
+            vis[i] = false;
+            cur[i] = head[i];
+        }
+        dfs(s, inf);
+    }
+}
+\end{lstlisting}
+
+\subsection{一般图最大匹配（带花树开花算法）}
+
+第一行一个整数，表示最多产生多少个小组。
+
+接下来一行 n 个整数，描述一组最优方案。第 v 个整数表示 v 号男生所在小组的另一个男生的编号。如果 v 号男生没有小组请输出 0。
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 5e2 + 5;
+const int maxm = maxn*(maxn - 1)/2;
+struct Edge {
+    int to, nxt;
+} E[maxm << 1];
+int head[maxn], tot;
+void init_edge(int n) {
+    for(int i = 0; i <= n; ++i) head[i] = 0;
+    tot = 0;
+}
+void add_edge(int x, int y) {
+    E[++tot] = {y, head[x]};
+    head[x] = tot;
+}
+void add(int x, int y) {
+    add_edge(x, y);
+    add_edge(y, x);
+}
+int *Top;
+int Stp; // time stamp
+int n; // vertex number: [1, n]
+// Nxt[]: match id
+int Pre[maxn], Nxt[maxn], S[maxn], Q[maxn], Vis[maxn];
+int fa[maxn];
+void init_match(int n) {
+    init_edge(n);
+    Top = Q;
+    Stp = 0;
+    for(int i = 0; i <= n; ++i) {
+        fa[i] = i;
+        Pre[i] = Nxt[i] = Vis[i] = 0;
+    }
+}
+int findfa(int x) {
+    if(fa[x] != x) fa[x] = findfa(fa[x]);
+    return fa[x];
+}
+
+int lca(int x, int y) {
+    for(Stp++, x = findfa(x), y = findfa(y); ; x ^= y ^= x ^= y) {
+        if(x) {
+            if(Vis[x] == Stp) return x;
+            Vis[x] = Stp;
+            x = findfa(Pre[Nxt[x]]);
+        }
+    }
+}
+
+void blossom(int x, int y, int l) {
+    while(findfa(x) != l) {
+        Pre[x] = y, y = Nxt[x];
+        assert(x != -1);
+        S[*Top = y] = 0, *Top++;
+        if(fa[x] == x) fa[x] = l;
+        if(fa[y] == y) fa[y] = l;
+        x = Pre[y];
+    }
+}
+
+int match(int x) {
+    for(int i = 1; i <= n; ++i) fa[i] = i;
+    memset(S, -1, sizeof(S));
+    S[*(Top = Q) = x] = 0, Top++;
+    for(int *i = Q; i != Top; *i++)
+        for(int T = head[*i]; T != 0; T = E[T].nxt) {
+            int g = E[T].to;
+            if(S[g] == -1) {
+                Pre[g] = *i, S[g] = 1;
+                if(Nxt[g] == 0) {
+                    for(int u = g, v = *i, lst; v; u = lst, v = Pre[u])
+                        lst = Nxt[v], Nxt[v] = u, Nxt[u] = v;
+                    return 1;
+                }
+                S[*Top = Nxt[g]] = 0, Top++;
+            } else if(!S[g] && findfa(g) != findfa(*i)) {
+                int l = lca(g, *i);
+                blossom(g, *i, l);
+                blossom(*i, g, l);
+            }
+        }
+    return 0;
+}
+int max_match() {
+    int ret = 0;
+    for(int i = n; i >= 1; --i) {
+        if(!Nxt[i]) ret += match(i);
+    }
+    return ret;
+}
+int main() {
+    int m;
+    scanf("%d%d", &n, &m);
+    init_match(n);
+    for(int i = 1; i <= m; ++i) {
+        int x, y; scanf("%d%d", &x, &y);
+        add(x, y);
+    }
+    int ans = max_match();
+    printf("%d\n", ans);
+    for(int i = 1; i <= n; i++) {
+        if(i > 1) printf(" ");
+        printf("%d", Nxt[i]);
+    }
+    puts("");
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{平面图相关}
+
+\subsubsection{平面图的性质}
+
+平面图的欧拉公式：
+
+如果一个连通的平面图有 n 个点， m 条边和 f 个面，那么 f = m - n + 2
+
+\subsubsection{平面图 G 与其对偶图 G*}
+
+G*中的每个点对应G中的一个面
+
+对于G中的每条边e
+e属于两个面f1、f2，加入边（f1*，f2*）
+e只属于一个面f，加入回边（f*，f*）
+
+G的面数等于G*的点数，G*的点数等于G的面数，G与G*边数相同
+
+G*中的环与G中的割一一对应
+
+\subsubsection{s-t 平面图}
+
+原图为平面图
+
+图中的一个点为源点 s，另外一个点为汇点 t，且 s 和 t 都在图中的无界面的边界上
+
+\subsubsection{应用 s-t 平面图求最小割}
+
+在平面图中的起点和终点之间加一条边
+
+将平面图（即原来的图）转化为对偶图，记起点和终点构成的边组成的面为源点，无界面为汇点，每条边的权等于原图中对应边的权
+
+删去源点和汇点之间的边
+
+在对偶图上求最短路即为原图的最大流（或最小割）

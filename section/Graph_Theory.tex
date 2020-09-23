@@ -1,0 +1,1357 @@
+
+
+\section{图论}
+
+\subsection{最小生成树（无向图）}
+
+\subsubsection{Kruskal 算法}
+
+贪心按照边权升序排序，并查集维护块的连通性
+
+每次贪心选择当前能选择的边权最小且不成环的边
+
+\subsubsection{性质}
+
+树满足以下性质：
+
+\begin{itemize}
+    \item 是边数最多的无环图
+    \item 是边数最少的连通图
+    \item 任意两点间的简单路径唯一
+\end{itemize}
+
+最小生成树满足以下性质：
+
+\begin{itemize}
+    \item 是总边权和最小的生成树
+    \item 是最大边权最小的生成树
+    \item 边权各不相同的图对应的最小生成树一定唯一
+    \item 存在相同边权的最小生成树可能唯一，也可能不唯一
+\end{itemize}
+
+\subsubsection{拓展}
+
+\begin{itemize}
+    \item 多目标规划的最小生成树只需将权值按照目标优先级依次比较即可
+\end{itemize}
+
+\subsubsection{生成树计数（Matrix Tree 定理）}
+
+Matrix-Tree 定理(Kirchhoff 矩阵-树定理)
+
+\begin{itemize}
+    \item G 的度数矩阵 D[G]是一个 n*n 的矩阵,并且满足:当 i != j 时,dij=0;当 i=j 时,dij 等于 vi 的度数。
+    \item G 的邻接矩阵 A[G]也是一个 n*n 的矩阵, 并且满足:如果 vi、vj 之间有边直接相连,则 aij=1,否则为 0。
+\end{itemize}
+
+我们定义 G 的 Kirchhoff 矩阵(也称为拉普拉斯算子) C[G] 为 C[G] = D[G] - A[G]
+
+则 Matrix-Tree 定理可以描述为:G 的所有不同的生成树的个数等于其 Kirchhoff 矩阵 C[G]任何一个 n-1 阶主子式的行列式的绝对值。
+
+所谓 n-1 阶主子式,就是对于 r(1≤r≤n),将 C[G]的第 r 行、第 r 列同时去掉后得到的新矩阵,用 Cr[G] 表示。
+
+\subsubsection{最小生成树计数（Kruskal + Matrix Tree 定理）}
+
+算法引入：
+
+给定一个含有N个结点M条边的无向图,求它最小生成树的个数t(G);
+
+算法思想：
+
+抛开“最小”的限制不看,如果只要求求出所有生成树的个数,是可以利用Matrix-Tree定理解决的;
+
+Matrix-Tree定理此定理利用图的Kirchhoff矩阵,可以在O(N3)时间内求出生成树的个数;
+
+kruskal算法：
+
+将图G={V,E}中的所有边按照长度由小到大进行排序,等长的边可以按照任意顺序;
+
+初始化图G’为{V,Ø},从前向后扫描排序后的边,如果扫描到的边e在G’中连接了两个相异的连通块,则将它插入G’中;
+
+最后得到的图G’就是图G的最小生成树;
+
+由于kruskal按照任意顺序对等长的边进行排序,则应该将所有长度为L0的边的处理当作一个阶段来整体看待;
+
+令kruskal处理完这一个阶段后得到的图为G0,如果按照不同的顺序对等长的边进行排序,得到的G0也是不同;
+
+虽然G0可以随排序方式的不同而不同,但它们的连通性都是一样的,都和F0的连通性相同(F0表示插入所有长度为L0的边后形成的图);
+
+在kruskal算法中的任意时刻,并不需要关注G’的具体形态,而只要关注各个点的连通性如何(一般是用并查集表示);
+
+所以只要在扫描进行完第一阶段后点的连通性和F0相同,且是通过最小代价到达这一状态的,接下去都能找到最小生成树;
+
+经过上面的分析,可以看出第一个阶段和后面的工作是完全独立的;
+
+第一阶段需要完成的任务是使G0的连通性和F0一样,且只能使用最小的代价;
+
+计算出这一阶段的方案数,再乘上完成后续事情的方案数,就是最终答案;
+
+由于在第一个阶段中,选出的边数是一定的,所有边的长又都为L0;
+
+所以无论第一个阶段如何进行代价都是一样的,那么只需要计算方案数就行了;
+
+此时Matrix-Tree定理就可以派上用场了,只需对F0中的每一个连通块求生成树个数再相乘即可;
+
+Matrix-Tree定理:
+
+G的所有不同的生成树的个数等于其Kirchhoff矩阵C[G]任何一个n-1阶主子式的行列式的绝对值；
+
+n-1阶主子式就是对于r(1≤r≤n),将C[G]的第r行,第r列同时去掉后得到的新矩阵,用Cr[G]
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e2 + 5;
+const int maxm = 2e3 + 5;
+struct Edge{
+    int u, v;
+    int w;
+    bool operator < (const Edge &ed)const{
+        return w < ed.w;
+    }
+}edge[maxm];
+int n, m;
+ll mod;
+int fa1[maxn], fa2[maxn];//fa1, fa2都是并查集，fa2是每组边临时使用
+bool vis[maxn];
+ll g[maxn][maxn], kir[maxn][maxn]; //G顶点之间的关系，kir为生成树计数用的Kirchhoff矩阵
+vector<int> v[maxn]; //记录每个连通分量
+int findfa(int x, int f[]){
+    int y = x;
+    while(f[x] != x) x = f[x];
+    while(f[y] != x){
+        int z = f[y];
+        f[y] = x;
+        y = z;
+    }
+    return x;
+}
+ll det(int nn){ //生成树计数:Matrix-Tree定理
+    for(int i = 0; i < nn; ++i)
+        for(int j = 0; j < nn; ++j)
+            kir[i][j] %= mod;
+    ll ret = 1LL;
+    for(int i = 1; i < nn; ++i) {
+        for(int j = i + 1; j < nn; ++j)
+            while(kir[j][i]) {
+                ll t = kir[i][i]/kir[j][i];
+                for(int k = i; k < nn; ++k) kir[i][k] = (kir[i][k] - kir[j][k]*t)%mod;
+                for(int k = i; k < nn; ++k) swap(kir[i][k], kir[j][k]);
+                ret = -ret;
+            }
+        if(kir[i][i] == 0) return 0LL;
+        ret = (ret*kir[i][i])%mod;
+    }
+    ret = (ret + mod)%mod;
+    return ret;
+}
+ll Solve(){
+    sort(edge, edge + m); //按权值排序
+    for(int i = 1; i <= n; ++i){ //初始化并查集
+        fa1[i] = i;
+        vis[i] = false;
+    }
+    int wt = -1; //记录相同的权值的边
+    ll ret = 1;
+    for(int k = 0; k <= m; ++k){
+        if(k == m || edge[k].w != wt){ //一组相等的边,即权值都为Edge的边加完
+            for(int i = 1; i <= n; ++i){
+                if(vis[i]){
+                    int fai = findfa(i, fa2);
+                    v[fai].push_back(i);
+                    vis[i] = false;
+                }
+            }
+            for(int i = 1; i <= n; ++i){ //枚举每个连通分量
+                if(v[i].size() > 1){
+                    for(int a = 1; a <= n; ++a)
+                        for(int b = 1; b <= n; ++b)
+                            kir[a][b] = 0;
+                    int len = v[i].size();
+                    for(int a = 0; a < len; ++a) //构建Kirchhoff矩阵C
+                        for(int b = a + 1; b < len; ++b){
+                            int aa = v[i][a];
+                            int bb = v[i][b];
+                            kir[b][a] -= g[aa][bb];
+                            kir[a][b] = kir[b][a];
+                            kir[a][a] += g[aa][bb]; //连通分量的度
+                            kir[b][b] += g[aa][bb];
+                        }
+                    ll now = det(len);
+                    ret = (ret*now)%mod; //对V中的每一个连通块求生成树个数再相乘
+                    for(int a = 0; a < len; ++a) fa1[v[i][a]] = i;
+                }
+            }
+            for(int i = 1; i <= n; ++i){
+                fa1[i] = findfa(i, fa1);
+                fa2[i] = fa1[i];
+                v[i].clear();
+            }
+            if(k == m) break;
+            wt = edge[k].w;
+        }
+        int u = edge[k].u;
+        int v = edge[k].v;
+        int fu = findfa(u, fa1);
+        int fv = findfa(v, fa1);
+        if(fu == fv) continue;
+        vis[fu] = vis[fv] = true;
+        fa2[findfa(fu, fa2)] = findfa(fv, fa2);//并查集操作
+        ++g[fu][fv];
+        ++g[fv][fu];
+    }
+    bool flag = false;
+    for(int i = 2; i <= n && !flag; ++i) if(fa2[i] != fa2[i - 1]) flag = true;
+    if(m == 0) flag = true;
+    if(flag) ret = 0;
+    ret %= mod;
+    return ret;
+}
+\end{lstlisting}
+
+\subsection{堆优化的 Dijkstra 算法}
+
+时间复杂度 $O(n \log m)$
+
+可进行如下拓展
+
+\begin{itemize}
+    \item 多目标规划的最短路需：在用当前出堆的节点（当前能拓展的最近点），更新其他相邻节点时权值按照目标优先级依次比较，决定是否将目标入堆
+    \item 最短路径数量统计需：在某个节点最短距离被缩短时重置为当前节点的方案数，当前距离相同时，累加当前节点的方案数
+    \item 维护次短路需：当最短距离可以被松弛时，原最短距离更新为现最短距离，次短距离可更新为原最短距离；否则若能松弛次短距离就松弛（类似于多目标规划）
+\end{itemize}
+
+\subsection{SPFA O(玄学) 判负权环}
+
+\subsubsection{模板}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 1e5 + 5;
+int n;
+const int inf = 0x3f3f3f3f;
+struct node{
+    int to, val;
+    node(int to = 0, int val = 0):to(to), val(val){}
+};
+bool inq[maxn];
+int dist[maxn], cnt[maxn];
+vector<node> g[maxn];
+queue<int> q;
+bool spfa(int s) {
+    for (int i = 1; i <= n; ++i) {
+        inq[i] = false;
+        dist[i] = inf;
+        cnt[i] = 0;
+    }
+    q.push(s); dist[s] = 0;
+    inq[s] = true; ++cnt[s];
+    while (!q.empty()){
+        int x = q.front(); q.pop();
+        inq[x] = false;
+        int sz = g[x].size();
+        for (int i = 0; i < sz; ++i) {
+            node now = g[x][i];
+            int nv = dist[x] + now.val;
+            if (dist[now.to] > nv){
+                dist[now.to] = nv;
+                if (!inq[now.to]) {
+                    inq[now.to] = true;
+                    q.push(now.to);
+                    if (++cnt[now.to] >= n) return false;
+                }
+            }
+        }
+    }
+    return true;
+}    
+\end{lstlisting}
+
+\subsubsection{差分约束系统}
+
+$X_a - X_b \le c$
+
+n: number of variables 变量数
+
+m: number of constraint conditions 约束条件数
+
+Super Source 0: $X_i - X_0 \le 0$ 超级源点 0
+
+算法运行结束后，若无解则返回 false
+
+否则，dist 数组里为一组非正整数解
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e5 + 5;
+const ll linf = 0x3f3f3f3f3f3f3f3f;
+struct node{
+    int to; ll val;
+    node(int to = 0, ll val = 0):to(to), val(val){}
+};
+bool inq[maxn];
+ll dist[maxn];
+int cnt[maxn], n, m;
+vector<node> g[maxn];
+queue<int> q;
+bool spfa(int s){
+    for(int i = 0; i <= n; ++i){
+        inq[i] = false;
+        dist[i] = linf;
+        cnt[i] = 0;
+    }
+    q.push(s); dist[s] = 0;
+    inq[s] = true; ++cnt[s];
+    while(!q.empty()){
+        int x = q.front(); q.pop();
+        int sz = g[x].size();
+        for(int i = 0; i < sz; ++i){
+            node now = g[x][i];
+            if(now.to == x && now.val < 0) return false;
+            ll nv = dist[x] + now.val;
+            if(dist[now.to] > nv){
+                dist[now.to] = nv;
+                if(!inq[now.to]){
+                    inq[now.to] = true;
+                    q.push(now.to);
+                    if(++cnt[now.to] >= n) return false;
+                }
+            }
+        }
+        inq[x] = false;
+    }
+    return true;
+}
+int a[maxn], b[maxn]; ll c[maxn];
+bool DCS() {
+    for(int i = 1; i <= n; ++i) g[0].push_back(node(i, 0));
+    for(int i = 0; i < m; ++i) g[b[i]].push_back(node(a[i], c[i]));
+    if(spfa(0)) return true;
+    return false;
+}
+\end{lstlisting}
+
+\subsection{强连通分量（Tarjan 算法）}
+
+\subsubsection{无向图}
+
+\begin{lstlisting}[language=C++]
+struct Node {
+    int next, v;
+} star[maxn<<1];
+int head[maxn], tot;
+int dfn[maxn], low[maxn], vis[maxn], cnt;
+int s[maxn], color[maxn], top, col;
+int pre[maxn];
+
+void init(){
+    tot = 0, cnt = 0;
+    col = 0, top = -1;
+    memset(vis, 0, sizeof(vis));
+    memset(pre, 0, sizeof(vis));
+    memset(head, -1, sizeof(vis));
+}
+
+void addedge(int u, int v){
+    star[tot].next = head[u];
+    star[tot].v = v;
+    head[u] = tot++;
+}
+
+void Tarjan(int u){
+    vis[u] = true;
+    dfn[u] = low[u] = cnt++;
+    s[++top] = u;
+    for(int i = head[u]; ~i; i = star[i].next){
+        int v = star[i].v;
+        if(!vis[v]) {
+            pre[v] = u;
+            Tarjan(v);
+        }
+        if(v != pre[u]) low[u] = min(low[u], low[v]);
+    }
+
+    if(dfn[u] == low[u]){
+        ++col;
+        do{
+            color[s[top]] = col;
+        }while(top != -1 && s[top--] != u);
+    }
+}
+\end{lstlisting}
+
+\subsubsection{普通有向图转DAG全家桶（去重边，去自环）}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e5 + 5;
+struct Edge {
+    int to, nxt;
+} E1[maxn << 1], E2[maxn << 1];
+int head1[maxn], head2[maxn], tot1, tot2;
+int n, m, N;
+void init() {
+    for(int i = 0; i <= n; ++i) {
+        head1[i] = head2[i] = -1;
+    }
+    tot1 = tot2 = 0;
+}
+void addEdge1(int u, int v) {
+    E1[tot1] = {v, head1[u]};
+    head1[u] = tot1++;
+}
+void addEdge2(int u, int v) {
+    E2[tot2] = {v, head2[u]};
+    head2[u] = tot2++;
+}
+int dfn[maxn], low[maxn], cnt;
+int st[maxn], color[maxn], tp;
+bool ins[maxn];
+void Tarjan(int x) {
+    ins[x] = true;
+    dfn[x] = low[x] = ++cnt;
+    st[tp++] = x;
+    for(int i = head1[x]; i != -1; i = E1[i].nxt) {
+        int to = E1[i].to;
+        if(dfn[to] == 0) {
+            Tarjan(to);
+            low[x] = min(low[x], low[to]);
+        } else if(ins[to]) {
+            low[x] = min(low[x], dfn[to]);
+        }
+    }
+    if(dfn[x] == low[x]) {
+        ++N;
+        while(true) {
+            int now = st[--tp];
+            color[now] = N; ins[now] = false;
+            /*
+                这里根据题目要求维护相关信息即可
+            */
+            if(now == x) break;
+        }
+    }
+}
+unordered_map<int, bool> vis[maxn];
+void Solve() {
+    cnt = tp = N = 0;
+    for(int i = 0; i <= n; ++i) {
+        ins[i] = false;
+        dfn[i] = low[i] = 0;
+    }
+    for(int i = 1; i <= n; ++i) {
+        if(dfn[i] != 0) continue;
+        Tarjan(i);
+    }
+    for(int i = 1; i <= n; ++i) {
+        for(int j = head1[i]; j != -1; j = E1[j].nxt) {
+            int to = E1[j].to;
+            int ci = color[i], ct = color[to];
+            if(ci == ct) continue;
+            if(vis[ci][ct]) continue;
+            vis[ci][ct] = true;
+            addEdge2(ci, ct);
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{在DAG的拓扑序上动态规划（BZOJ-1179 Atm）}
+
+1 号点出发，单向边所构成的图，每个点有点权，经过某个点一次和多次只会获得一次该点的点权的收益，问最大能够获得多大收益。
+
+\begin{lstlisting}[language=C++]
+const int maxn = 5e5 + 5;
+struct Edge {
+    int to, nxt;
+} E1[maxn << 1], E2[maxn << 1];
+int head1[maxn], head2[maxn], tot1, tot2;
+int n, m;
+void init() {
+    for(int i = 0; i <= n; ++i) {
+        head1[i] = head2[i] = -1;
+    }
+    tot1 = tot2 = 0;
+
+}
+void addEdge1(int u, int v) {
+    E1[tot1] = {v, head1[u]};
+    head1[u] = tot1++;
+}
+void addEdge2(int u, int v) {
+    E2[tot2] = {v, head2[u]};
+    head2[u] = tot2++;
+}
+int dfn[maxn], low[maxn], cnt;
+int st[maxn], color[maxn], tp, N;
+bool ins[maxn], ok1[maxn], ok2[maxn];
+int val1[maxn], val2[maxn];
+void Tarjan(int x) {
+    ins[x] = true;
+    dfn[x] = low[x] = ++cnt;
+    st[tp++] = x;
+    for(int i = head1[x]; i != -1; i = E1[i].nxt) {
+        int to = E1[i].to;
+        if(dfn[to] == 0) {
+            Tarjan(to);
+            low[x] = min(low[x], low[to]);
+        } else if(ins[to]) {
+            low[x] = min(low[x], dfn[to]);
+        }
+    }
+    if(dfn[x] == low[x]) {
+        ++N;
+        while(true) {
+            int now = st[--tp];
+            color[now] = N; ins[now] = false;
+            const int maxn = 5e5 + 5;
+            struct Edge {
+                int to, nxt;
+            } E1[maxn << 1], E2[maxn << 1];
+            int head1[maxn], head2[maxn], tot1, tot2;
+            int n, m;
+            void init() {
+                for(int i = 0; i <= n; ++i) {
+                    head1[i] = head2[i] = -1;
+                }
+                tot1 = tot2 = 0;
+            
+            }
+            void addEdge1(int u, int v) {
+                E1[tot1] = {v, head1[u]};
+                head1[u] = tot1++;
+            }
+            void addEdge2(int u, int v) {
+                E2[tot2] = {v, head2[u]};
+                head2[u] = tot2++;
+            }
+            int dfn[maxn], low[maxn], cnt;
+            int st[maxn], color[maxn], tp, N;
+            bool ins[maxn], ok1[maxn], ok2[maxn];
+            int val1[maxn], val2[maxn];
+            void Tarjan(int x) {
+                ins[x] = true;
+                dfn[x] = low[x] = ++cnt;
+                st[tp++] = x;
+                for(int i = head1[x]; i != -1; i = E1[i].nxt) {
+                    int to = E1[i].to;
+                    if(dfn[to] == 0) {
+                        Tarjan(to);
+                        low[x] = min(low[x], low[to]);
+                    } else if(ins[to]) {
+                        low[x] = min(low[x], dfn[to]);
+                    }
+                }
+                if(dfn[x] == low[x]) {
+                    ++N;
+                    while(true) {
+                        int now = st[--tp];
+                        color[now] = N; ins[now] = false;
+                        /*
+                            这里根据题目要求维护相关信息即可
+                        */
+                        ok2[N] |= ok1[now];
+                        val2[N] += val1[now];
+                        if(now == x) break;
+                    }
+                }
+            }
+            unordered_map<int, bool> vis[maxn];
+            void Solve() {
+                cnt = tp = N = 0;
+                for(int i = 0; i <= n; ++i) {
+                    ins[i] = false;
+                    dfn[i] = low[i] = val2[i] = 0;
+                }
+                for(int i = 1; i <= n; ++i) {
+                    if(dfn[i] != 0) continue;
+                    Tarjan(i);
+                }
+                for(int i = 1; i <= n; ++i) {
+                    for(int j = head1[i]; j != -1; j = E1[j].nxt) {
+                        int to = E1[j].to;
+                        int ci = color[i], ct = color[to];
+                        if(ci == ct) continue;
+                        if(vis[ci][ct]) continue;
+                        vis[ci][ct] = true;
+                        addEdge2(ci, ct);
+                    }
+                }
+            }
+            int sum[maxn], q[maxn], ind2[maxn], lf, rt;
+            void Dfs(int x) {
+                for(int i = head2[x]; i != -1; i = E2[i].nxt) {
+                    int to = E2[i].to;
+                    if(ind2[to] == 0) Dfs(to);
+                    ++ind2[to];
+                }
+            }
+            void Topo(int s) {
+                lf = rt = 0;
+                for(int i = 1; i <= N; ++i) ind2[i] = 0;
+                Dfs(s);
+                q[rt++] = s;
+                while(lf < rt) {
+                    int x = q[lf++];
+                    sum[x] += val2[x];
+                    for(int i = head2[x]; i != -1; i = E2[i].nxt) {
+                        int to = E2[i].to;
+                        sum[to] = max(sum[to], sum[x]);
+                        if(--ind2[to] == 0) q[rt++] = to;
+                    }
+                }
+            }
+            int main() {
+                scanf("%d%d", &n, &m);
+                init();
+                for(int i = 0; i < m; ++i) {
+                    int x, y; scanf("%d%d", &x, &y);
+                    addEdge1(x, y);
+                }
+                for(int i = 1; i <= n; ++i) scanf("%d", &val1[i]);
+                int s, p; scanf("%d%d", &s, &p);
+                for(int i = 0; i < p; ++i) {
+                    int x; scanf("%d", &x);
+                    ok1[x] = true;
+                }
+                Solve();
+                for(int i = 0; i <= n; ++i) sum[i] = 0;
+                Topo(color[s]);
+                int ans = 0;
+                for(int i = 1; i <= n; ++i) {
+                    if(!ok2[i]) continue;
+                    ans = max(ans, sum[i]);
+                }
+                printf("%d\n", ans);
+                return 0;
+            }   /*
+                这里根据题目要求维护相关信息即可
+            */
+            ok2[N] |= ok1[now];
+            val2[N] += val1[now];
+            if(now == x) break;
+        }
+    }
+}
+unordered_map<int, bool> vis[maxn];
+void Solve() {
+    cnt = tp = N = 0;
+    for(int i = 0; i <= n; ++i) {
+        ins[i] = false;
+        dfn[i] = low[i] = val2[i] = 0;
+    }
+    for(int i = 1; i <= n; ++i) {
+        if(dfn[i] != 0) continue;
+        Tarjan(i);
+    }
+    for(int i = 1; i <= n; ++i) {
+        for(int j = head1[i]; j != -1; j = E1[j].nxt) {
+            int to = E1[j].to;
+            int ci = color[i], ct = color[to];
+            if(ci == ct) continue;
+            if(vis[ci][ct]) continue;
+            vis[ci][ct] = true;
+            addEdge2(ci, ct);
+        }
+    }
+}
+int sum[maxn], q[maxn], ind2[maxn], lf, rt;
+void Dfs(int x) {
+    for(int i = head2[x]; i != -1; i = E2[i].nxt) {
+        int to = E2[i].to;
+        if(ind2[to] == 0) Dfs(to);
+        ++ind2[to];
+    }
+}
+void Topo(int s) {
+    lf = rt = 0;
+    for(int i = 1; i <= N; ++i) ind2[i] = 0;
+    Dfs(s);
+    q[rt++] = s;
+    while(lf < rt) {
+        int x = q[lf++];
+        sum[x] += val2[x];
+        for(int i = head2[x]; i != -1; i = E2[i].nxt) {
+            int to = E2[i].to;
+            sum[to] = max(sum[to], sum[x]);
+            if(--ind2[to] == 0) q[rt++] = to;
+        }
+    }
+}
+int main() {
+    scanf("%d%d", &n, &m);
+    init();
+    for(int i = 0; i < m; ++i) {
+        int x, y; scanf("%d%d", &x, &y);
+        addEdge1(x, y);
+    }
+    for(int i = 1; i <= n; ++i) scanf("%d", &val1[i]);
+    int s, p; scanf("%d%d", &s, &p);
+    for(int i = 0; i < p; ++i) {
+        int x; scanf("%d", &x);
+        ok1[x] = true;
+    }
+    Solve();
+    for(int i = 0; i <= n; ++i) sum[i] = 0;
+    Topo(color[s]);
+    int ans = 0;
+    for(int i = 1; i <= n; ++i) {
+        if(!ok2[i]) continue;
+        ans = max(ans, sum[i]);
+    }
+    printf("%d\n", ans);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Cayley 公式（无根树计数）}
+
+\subsubsection{公式内容}
+
+对于任何正整数 $n$
+
+$n$ 个节点的带标号的无根树有 $n^{n − 2}$个
+
+还有一种等价的说法：
+
+$n$ 个有标号节点的无向完全图的生成树有 $n^{n − 2}$ 棵
+
+\subsubsection{限制特定节点的度的树的计数}
+
+限制编号为 $i$ 的点的度数为 $d_ {i}$，则树的个数有
+
+$$\frac{(n - 2)!}{\Pi_{i = 1} ^ {n} (d_{i} - 1)!}$$
+
+\subsubsection{n 个节点 k 棵树的森林计数问题}
+
+令 $T _ {n, k}$ 表示有着 $n$ 个节点的 $k$ 个联通块（$k$ 棵树）的森林的种类数，使得$1, 2, 3, \cdots, k$属于不同的子树
+
+根据Cayley定理，可以推导出
+
+$$T_{n, k} = k n^{n − k - 1}$$
+
+例题：BZOJ 1005 [HNOI2008] 明明的烦恼
+
+给出标号为 1 到 N （$0 < N \le 1000$）的点，以及某些点最终的度数 $D _ i$（如果对度数不要求，则输入  $-1$）
+
+允许在任意两点间连线，可产生多少棵度数满足要求的树？
+
+根据 Cayley公式的推广式一
+
+$$\frac{(n − 2)!} {\Pi ^ {n} _{i = 1} (d_i − 1)!}$$
+
+如果这道题目没有不受限制的点，那么这道问题就结束啦
+
+可是题目里面有不受限制的点，我们应该如何处理呢
+
+假设度数有限制的点的数量为 cnt，它们的度数为 $D_i$
+
+令
+
+$$sum = \sum _{i = 1} ^ {cnt} (D_i - 1)$$
+
+那么，在序列中不同的排列的总数为：
+
+$$C_{n - 2}^{sum} \times \frac{sum!}{ \Pi_{i = 1} ^ {cnt}(D_i - 1)!}$$
+
+而剩下的 $n - 2 - sum$ 个位置，可以随意的排列剩余的 $n - cnt$ 个点，于是，总的方案数就应该是：
+
+$$C_{n - 2}^{sum} \times \frac{sum!}{\Pi_{i = 1} ^ {cnt}(D_i - 1)!} \times (n - cnt)^{n - 2 - sum}$$
+
+化简后得到：
+
+$$\frac{(n - 2)!}{(n - 2 - sum) \Pi_{i = 1}^{cnt}(D_i - 1)!} \times (n - cnt)^{n - 2 - sum}$$
+
+注意答案会很大，并且没有取模操作
+
+所以需要用到大整数进行运算
+
+代码实现
+
+\begin{lstlisting}[language=java]
+import java.math.BigInteger;
+import java.util.Scanner;
+public class Main {
+    static int d[] = new int[1005];
+    static BigInteger fac[] = new BigInteger[1005];
+    public static void main(String[] args) {
+    // write your code here
+        Scanner in = new Scanner(System.in);
+        int n = in.nextInt();
+        int sum = 0, cnt = 0;
+        boolean f = false;
+        for(int i = 0; i < n; ++i){
+            d[i] = in.nextInt();
+            if(d[i] == 0 || d[i] >= n) f = true;
+            if(d[i] == -1) continue;
+            sum += d[i] - 1;
+            ++cnt;
+        }
+        in.close();
+        if(n == 1){
+            if(!f) System.out.println(1);
+            else System.out.println(0);
+            return ;
+        }
+        if(n == 2){
+            if(f || d[0] == 0 || d[1] == 0) System.out.println(0);
+            else System.out.println(1);
+            return ;
+        }
+        if(f){
+            System.out.println(0);
+            return ;
+        }
+        fac[0] = BigInteger.valueOf(1);
+        for(int i = 1; i <= n; ++i) fac[i] = fac[i - 1].multiply(BigInteger.valueOf(i));
+        BigInteger ans = fac[n - 2].divide(fac[n - 2 - sum]);
+        for(int i = 0; i < n; ++i){
+            if(d[i] == -1) continue;
+            ans = ans.divide(fac[d[i] - 1]);
+        }
+        for(int i = 0; i < n - 2 - sum; ++i) ans = ans.multiply(BigInteger.valueOf(n - cnt));
+        System.out.println(ans);
+    }
+}
+\end{lstlisting}
+
+\subsection{树上倍增求 LCA}
+
+\begin{lstlisting}[language=C++]
+struct edge{
+    int to; ll w;
+    edge(int to = 0, ll w = 0):to(to), w(w){}
+};
+vector<edge> g[maxn];
+int fa[maxn][maxm], d[maxn];
+ll dist[maxn], mxx[maxn][maxm];
+void addedge(int u, int v, ll w){
+    g[u].push_back(edge(v, w));
+    g[v].push_back(edge(u, w));
+}
+void init(int n){
+    for(int i = 0; i <= n; ++i){
+        g[i].clear();
+        for(int j = 0; j < maxm; ++j){
+            mxx[i][j] = 0;
+            fa[i][j] = 0;
+        }
+    }
+}
+void dfs(int x, int y){
+    for(int i = 1; i < maxm; ++i){
+        mxx[x][i] = max(mxx[fa[x][i - 1]][i - 1], mxx[x][i - 1]);
+        fa[x][i] = fa[fa[x][i - 1]][i - 1];
+    }
+    int sz = g[x].size();
+    for(int i = 0; i < sz; ++i){
+        int to = g[x][i].to;
+        ll w = g[x][i].w;
+        if(to == y) continue;
+        d[to] = d[x] + 1;
+        dist[to]  = dist[x] + w;
+        fa[to][0] = x;
+        mxx[to][0] = w;
+        dfs(to, x);
+    }
+}
+
+ll query(int a, int b){
+    int x = a, y = b;
+    int lca;
+    ll len, mx = 0;
+    if(d[a] > d[b]) swap(a, b);
+    int dt = d[b] - d[a];
+    for(int i = 0; (1<<i) <= dt; i++){
+        if(((dt>>i)&1) == 0) continue;
+        mx = max(mx, mxx[b][i]);
+        b = fa[b][i];
+    }
+    for(int i = maxm - 1; i >= 0; --i){
+        if(fa[a][i] == fa[b][i]) continue;
+        mx = max(mx, max(mxx[a][i], mxx[b][i]));
+        a = fa[a][i]; b = fa[b][i];
+    }
+    if(a == b){
+        lca = a;
+    }
+    else{
+        lca = fa[a][0];
+        mx = max(mx, max(mxx[a][0], mxx[b][0]));
+    }
+    len = dist[x] + dist[y] - 2LL*dist[lca];
+    return mx; // len or lca or mx or mi
+}
+\end{lstlisting}
+
+\subsection{树上点分治（树上合法点对（路径）计数）}
+
+\subsubsection{写法1（使用id标记来自哪一棵子树去重）}
+
+给一颗n个节点的树，每条边上有一个距离v。
+
+给定k值，求有多少点对（u，v）使u到v的距离小于等于k。
+
+\begin{lstlisting}[language=C++]
+#include <cstdio>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const ll mod = 1e9 + 7;
+const int maxn = 1e4 + 5;
+const int inf = 0x3f3f3f3f;
+struct Edge {
+    int nxt, to; ll w;
+    Edge(int nxt = 0, int to = 0, ll w = 0):nxt(nxt), to(to), w(w) {}
+} E[maxn << 1];
+int tot, head[maxn];
+int n, root, mi, nsz, atot, sz[maxn];
+bool vis[maxn];
+ll k, ans, cnt[maxn];
+void init() {
+    for(int i = 0; i <= n; ++i) {
+        head[i] = -1; cnt[i] = 0;
+        vis[i] = false;
+    }
+    tot = 0; ans = 0;
+}
+void addEdge(int u, int v, ll w) {
+    E[tot] = Edge(head[u], v, w);
+    head[u] = tot++;
+}
+void GetRoot(int x, int y) {
+    sz[x] = 1; int mxs = 0;
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to;
+        if(vis[to] || to == y) continue;
+        GetRoot(to, x);
+        sz[x] += sz[to];
+        if(sz[to] > mxs) mxs = sz[to];
+    }
+    if(nsz - sz[x] > mxs) mxs = nsz - sz[x];
+    if(mxs < mi) mi = mxs, root = x;
+}
+struct node {
+    int id; ll w;
+    bool operator <(const node& nd) const {
+        return w < nd.w;
+    }
+    node(int id = 0, ll w = 0):id(id), w(w) {}
+} a[maxn];
+void dfs(int x, int y, int id, ll w) {
+    a[atot++] = node(id, w);
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; ll nw = E[i].w;
+        if(vis[to] || to == y) continue;
+        dfs(to, x, id, w + nw);
+    }
+}
+void GetA(int x) {
+    a[atot++] = node(x, 0);
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; ll w = E[i].w;
+        if(vis[to]) continue;
+        dfs(to, x, to, w);
+    }
+}
+ll calc(int x) {
+    ll ret = 0;
+    atot = 0; GetA(x);
+    int rt = atot - 1;
+    sort(a, a + atot);
+    for(int i = 0; i < atot; ++i) ++cnt[a[i].id];
+    for(int lf = 0; ; ++lf) {
+        --cnt[a[lf].id];
+        while(lf < rt && a[lf].w + a[rt].w > k) {
+            --cnt[a[rt].id];
+            --rt;
+        }
+        if(lf >= rt) break;
+        ret += rt - lf - cnt[a[lf].id];
+    }
+    return ret;
+}
+void solve(int x) {
+    ans += calc(x); vis[x] = true;
+    int tsz = nsz;
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; ll w = E[i].w;
+        if(vis[to]) continue;
+        mi = inf;
+        if(sz[to] > sz[x]) nsz = tsz - sz[x];
+        else nsz = sz[to];
+        GetRoot(to, -1); solve(root);
+    }
+}
+int main(){
+    while(scanf("%d%lld", &n, &k) != EOF) {
+        if(n == 0 && k == 0) break;
+        init();
+        for(int i = 1; i < n; ++i) {
+            int u, v; ll w; scanf("%d%d%lld", &u, &v, &w);
+            addEdge(u, v, w); addEdge(v, u, w);
+        }
+        nsz = n, mi = inf;
+        GetRoot(1, -1); solve(root);
+        printf("%lld\n", ans);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{写法2（容斥去重）}
+
+给定一棵树，有m次询问，每次询问存不存在两个点的距离为 k
+
+\begin{lstlisting}[language=C++]
+#include <cstdio>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const ll mod = 1e9 + 7;
+const int maxn = 1e4 + 5;
+const int inf = 0x3f3f3f3f;
+struct Edge {
+    int nxt, to; ll w;
+    Edge(int nxt = 0, int to = 0, ll w = 0):nxt(nxt), to(to), w(w) {}
+} E[maxn << 1];
+int tot, head[maxn];
+int n, root, mi, nsz, atot, sz[maxn];
+bool vis[maxn];
+ll k, ans;
+void init() {
+    for(int i = 0; i <= n; ++i) head[i] = -1;
+    tot = 0;
+}
+void addEdge(int u, int v, ll w) {
+    E[tot] = Edge(head[u], v, w);
+    head[u] = tot++;
+}
+void GetRoot(int x, int y) {
+    sz[x] = 1; int mxs = 0;
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to;
+        if(vis[to] || to == y) continue;
+        GetRoot(to, x);
+        sz[x] += sz[to];
+        if(sz[to] > mxs) mxs = sz[to];
+    }
+    if(nsz - sz[x] > mxs) mxs = nsz - sz[x];
+    if(mxs < mi) mi = mxs, root = x;
+}
+ll a[maxn];
+void dfs(int x, int y, ll w) {
+    a[atot++] = w;
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; ll nw = E[i].w;
+        if(vis[to] || to == y) continue;
+        dfs(to, x, w + nw);
+    }
+}
+
+ll calc(int x, ll w) {
+    ll ret = 0, lst = 0;
+    atot = 0; dfs(x, -1, w);
+    sort(a, a + atot);
+    int lf = 0, rt = atot - 1;
+    while(lf < rt) {
+        ll sum = a[lf] + a[rt];
+        if(sum > k) --rt;
+        else if(sum < k) ++lf;
+        else {
+            if(a[lf] == a[rt]) {
+                ll len = rt - lf + 1;
+                ret += (len - 1LL)*len/2LL;
+                break;
+            }
+            int pl = lf, pr = rt;
+            while(pl < rt && a[pl] == a[lf]) ++pl;
+            while(pr > lf && a[pr] == a[rt]) --pr;
+            ll lenl = pl - lf, lenr = rt - pr;
+            ret += lenl*lenr;
+            lf = pl, rt = pr;
+        }
+    }
+    return ret;
+}
+void solve(int x) {
+    ans += calc(x, 0); vis[x] = true;
+    int tsz = nsz;
+    for(int i = head[x]; i != -1; i = E[i].nxt) {
+        int to = E[i].to; ll w = E[i].w;
+        if(vis[to]) continue;
+        ans -= calc(to, w);
+        mi = inf;
+        if(sz[to] > sz[x]) nsz = tsz - sz[x];
+        else nsz = sz[to];
+        GetRoot(to, -1); solve(root);
+    }
+}
+int main(){
+    while(scanf("%d", &n) != EOF) {
+        if(n == 0) break;
+        init();
+        for(int i = 1; i <= n; ++i) {
+            int x;
+            while(scanf("%d", &x) != EOF) {
+                if(x == 0) break;
+                ll y; scanf("%lld", &y);
+                addEdge(i, x, y);
+                addEdge(x, i, y);
+            }
+        }
+        ll val;
+        while(scanf("%lld", &val) != EOF) {
+            if(val == 0) break;
+            for(int i = 1; i <= n; ++i) vis[i] = false;
+            k = val; ans = 0;
+            nsz = n, mi = inf;
+            GetRoot(1, -1); solve(root);
+            if(ans > 0) puts("AYE");
+            else puts("NAY");
+        }
+        puts(".");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{输出欧拉回路（路径）}
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+const int mod = 1e9 + 7;
+const int inf = 0x3f3f3f3f;
+
+#pragma comment(linker, "/STACK:102400000, 102400000")
+const int maxn = 1e5 + 5;
+const int maxm = 2e5 + 15;
+struct Edge {
+    int to, nxt;
+} E[maxm << 1];
+int head[maxn], te;
+int road[maxm], tr;
+int vertex[maxm], tv;
+bool vis[maxm];
+void init() {
+    memset(head, -1, sizeof(head));
+    te = 1;
+}
+int ind[maxn], outd[maxn];
+void addEdge(int u, int v, bool undir) {
+    E[te << 1] = {v, head[u]};
+    head[u] = (te << 1);
+    ++outd[u], ++ind[v];
+    if(undir) {
+        E[te << 1 | 1] = {u, head[v]};
+        head[v] = (te << 1 | 1);
+        ++outd[v], ++ind[u];
+    }
+    ++te;
+}
+void dfs(int x) {
+    for(int &i = head[x]; i != -1; i = E[i].nxt) { // 对 head[x] 的引用是降低复杂度关键
+        int id = (i >> 1), ii = i;
+        if(vis[id]) continue;
+        vis[id] = true;
+        dfs(E[ii].to);
+        if((ii & 1) == 0) road[tr++] = id;
+        else road[tr++] = -id;
+        if(i == -1) break;
+    }
+    vertex[tv++] = x;
+}
+int n, m;
+bool Euler(bool undir) {
+    int id = E[2].to;
+    for(int i = 1; i <= n; ++i) {
+        if(!undir && ind[i] != outd[i]) return false; // 有向图
+        if(undir && (ind[i] & 1) == 1) return false; // 无向图
+    }
+    tv = tr = 0;
+    dfs(id);
+    if(tr < m) return false;
+    return true;
+}
+int main() {
+    int ty; scanf("%d", &ty);
+    scanf("%d%d", &n, &m);
+    init();
+    memset(vis, false, sizeof(vis));
+    memset(ind, 0, sizeof(ind));
+    memset(outd, 0, sizeof(outd));
+    bool undir = true;
+    if(ty == 1) undir = true; // 无向图
+    else undir = false; // 有向图
+    for(int i = 0; i < m; ++i) {
+        int u, v;
+        scanf("%d%d", &u, &v);
+        addEdge(u, v, undir);
+    }
+    if(Euler(undir)) {
+        puts("YES");
+        for(int i = tr - 1; i >= 0; --i) {
+            if(i < tr - 1) printf(" ");
+            printf("%d", road[i]);
+        }
+        puts("");
+    } else {
+        puts("NO");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{多源最短路（floyd 算法）}
+
+\subsubsection{无向图最小环}
+
+\begin{lstlisting}[language=C++]
+const int inf = 0x3f3f3f3f;
+const int maxn = 1e2 + 5;
+int g[maxn][maxn], dist[maxn][maxn], n, m;
+int MincostCycle() {
+    int ret = inf;
+    for(int k = 1; k <= n; ++k) {
+        for(int i = 1; i < k; ++i) {
+            if(g[i][k] == inf) continue;
+            for(int j = 1; j < k; ++j) {
+                if(i == j) continue;
+                if(g[k][j] == inf) continue;
+                if(dist[j][i] == inf) continue;
+                ret = min(ret, dist[j][i] + g[i][k] + g[k][j]);
+            }
+        }
+        for(int i = 1; i <= n; ++i) {
+            if(dist[i][k] == inf) continue;
+            for(int j = 1; j <= n; ++j) {
+                if(dist[k][j] == inf) continue;
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+            }
+        }
+    }
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{输出路径}
+
+迭代输出字典序最小的路径
+
+\begin{lstlisting}[language=C++]
+const int inf = 0x3f3f3f3f;
+const int maxn = 1e2 + 5;
+int g[maxn][maxn], b[maxn], n;
+int path[maxn][maxn];
+int way[maxn], tot;
+void GetPath(int a, int b) {
+    while(a != b) {
+        a = path[a][b];
+        way[tot++] = a;
+    }
+}
+void Floyd() {
+    for(int k = 1; k <= n; ++k) {
+        for(int i = 1; i <= n; ++i) {
+            if(i == k) continue;
+            if(g[i][k] == inf) continue;
+            for(int j = 1; j <= n; ++j) {
+                if(i == j || j == k) continue;
+                if(g[k][j] == inf) continue;
+                int w = g[i][k] + g[k][j] + b[k];
+                if(w < g[i][j]) {
+                    g[i][j] = w;
+                    path[i][j] = path[i][k];
+                } else if(w == g[i][j] && path[i][k] < path[i][j]) {
+                    path[i][j] = path[i][k];
+                }
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{三元环计数}
+
+求 $N$ 个点， $M$ 条边的无向图中，三元环的个数
+
+将点按照度数为第一关键字，标号为第二关键字从小到大排序，定义排序后每个点的序为 $pos[x]$
+
+对于每条无线边，定向为：pos 小的点连向 pos 大的点
+
+这样连完之后，每个点的出度最多只有 $\sqrt{M}$
+
+然后，依pos从小到大枚举验证三元组即可，总时间复杂度 $O(M\sqrt{M})$
+
+\begin{lstlisting}[language=C++]
+typedef pair<int, int> pii;
+const int maxn = 1e5 + 5;
+const int maxm = 2e5 + 5;
+struct Edge {
+    int to, nxt;
+} E[maxm];
+int head[maxn], tot;
+int u[maxm], v[maxm]; // input: id \in [0, n)
+int cnt[maxm]; // cnt[i]: how many triples the i-th edge involve in
+int ind[maxn], vis[maxn], frm[maxn];
+void init_edge(int n) {
+    for(int i = 0; i <= n; ++i) {
+        head[i] = -1;
+    }
+    tot = 0;
+}
+void add_edge(int u, int v) {
+    E[tot] = {v, head[u]};
+    head[u] = tot++;
+}
+int cmp(const int &x, const int &y) {
+    if(ind[x] == ind[y]) {
+        return x - y;
+    }
+    return ind[x] - ind[y];
+}
+void get_triples(int n, int m) {
+    init_edge(n);
+    for(int i = 1; i <= n; ++i) {
+        ind[i] = 0; vis[i] = 0;
+    }
+    for(int i = 0; i < m; ++i) {
+        cnt[i] = 0;
+        ++ind[u[i]]; ++ind[v[i]];
+    }
+    for(int i = 0; i < m; ++i) {
+        const int x = u[i], y = v[i];
+        if(x == y) { // self-loop: depends with the problem
+            // assert(false);
+            continue;
+        }
+        if(cmp(x, y) > 0) {
+            add_edge(x, y);
+        } else {
+            add_edge(y, x);
+        }
+    }
+    for(int i = 1; i <= n; ++i) {
+        const int x = i;
+        for(int j = head[x]; j != -1; j = E[j].nxt) {
+            const int y = E[j].to;
+            vis[y] = x; frm[y] = j;
+        }
+        for(int j = head[x]; j != -1; j = E[j].nxt) {
+            const int y = E[j].to;
+            for(int k = head[y]; k != -1; k = E[k].nxt) {
+                const int z = E[k].to;
+                if(vis[z] == x) {
+                    // find a triple edge(a, b, c)
+                    const int a = j;
+                    const int b = k;
+                    const int c = frm[z];
+                    ++cnt[a]; ++cnt[b]; ++cnt[c];
+                }
+            }
+        }
+    }
+    // calculate something with array: cnt[]
+}
+\end{lstlisting}
