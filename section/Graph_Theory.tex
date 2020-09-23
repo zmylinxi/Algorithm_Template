@@ -376,7 +376,7 @@ void Tarjan(int u){
 }
 \end{lstlisting}
 
-\subsubsection{普通有向图转DAG全家桶（去重边，去自环）}
+\subsubsection{普通有向图转 DAG 全家桶（去重边，去自环）}
 
 \begin{lstlisting}[language=C++]
 const int maxn = 1e5 + 5;
@@ -437,8 +437,8 @@ void solve() {
             int to = G1.E[j].to;
             int ci = color[i], ct = color[to];
             if(ci == ct) continue;
-            if(vis[ci][ct] > 0) continue;
             ++vis[ci][ct];
+            if(vis[ci][ct] == 1) continue;
             G2.add_edge(ci, ct);
         }
     }

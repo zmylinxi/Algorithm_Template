@@ -103,7 +103,7 @@
 \contentsline {subsubsection}{\numberline {6.3.2}差分约束系统}{74}{subsubsection.6.3.2}%
 \contentsline {subsection}{\numberline {6.4}强连通分量（Tarjan 算法）}{75}{subsection.6.4}%
 \contentsline {subsubsection}{\numberline {6.4.1}无向图}{75}{subsubsection.6.4.1}%
-\contentsline {subsubsection}{\numberline {6.4.2}普通有向图转DAG全家桶（去重边，去自环）}{76}{subsubsection.6.4.2}%
+\contentsline {subsubsection}{\numberline {6.4.2}普通有向图转 DAG 全家桶（去重边，去自环）}{76}{subsubsection.6.4.2}%
 \contentsline {subsubsection}{\numberline {6.4.3}在DAG的拓扑序上动态规划（BZOJ-1179 Atm）}{78}{subsubsection.6.4.3}%
 \contentsline {subsection}{\numberline {6.5}Cayley 公式（无根树计数）}{81}{subsection.6.5}%
 \contentsline {subsubsection}{\numberline {6.5.1}公式内容}{81}{subsubsection.6.5.1}%

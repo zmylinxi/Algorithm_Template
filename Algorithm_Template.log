@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2020.7.11)  23 SEP 2020 20:50
+This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2020.7.11)  23 SEP 2020 21:04
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -814,9 +814,15 @@ Package atveryend Info: Empty hook `AfterLastShipout' on input line 55.
  (./Algorithm_Template.aux)
 Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 55.
 Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 55.
-Package rerunfilecheck Info: File `Algorithm_Template.out' has not changed.
-(rerunfilecheck)             Checksum: F75A76F8970BE1A3FA8293B4DE7FA832;30832.
 
+
+Package rerunfilecheck Warning: File `Algorithm_Template.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `Algorithm_Template.out':
+(rerunfilecheck)             Before: F75A76F8970BE1A3FA8293B4DE7FA832;30832
+(rerunfilecheck)             After:  8861102B16F0BDF279F9892A473D71E9;30848.
 
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.41063pt have occurred.
