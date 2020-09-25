@@ -852,3 +852,79 @@ void solve(int n, T a[]) {
     printf("%d\n", lcs);
 }    
 \end{lstlisting}
+
+\subsection{Lyndon 分解}
+
+Lyndon 串：对于字符串 $s$，如果 $s$ 的字典序严格小于 $s$ 的所有后缀的字典序，称  是简单串，或者 Lyndon 串 。举一些例子， a , b , ab , aab , abb , ababb , abcd 都是 Lyndon 串。当且仅当  的字典序严格小于它的所有非平凡的循环同构串时，  才是 Lyndon 串。
+
+Lyndon 分解：串 $s$ 的 Lyndon 分解记为 $s = w_1w_2\dotsw_k$ ，其中所有 $w_i$ 为简单串，并且他们的字典序按照非严格单减排序，即 $w_1 \ge w_2 \ge \dots \ge w_k$ 。这样的分解存在且唯一。
+
+\begin{lstlisting}[language=C++]
+vector<string> duval(string const& s) {
+    int n = s.size(), i = 0;
+    vector<string> factorization;
+    while (i < n) {
+        int j = i + 1, k = i;
+        while (j < n && s[k] <= s[j]) {
+            if (s[k] < s[j]) k = i;
+            else k++;
+            j++;
+        }
+        while (i <= k) {
+            factorization.push_back(s.substr(i, j - k));
+            i += j - k;
+        }
+    }
+    return factorization;
+}
+\end{lstlisting}
+
+\subsection{回文自动机}
+
+\begin{lstlisting}[language=C++]
+struct PAM {
+    static const int N = 1e5 + 5;
+    int sz, tot, last;
+    struct Node {
+        int ch[26], len, fail;
+        int cnt, dep, dif, slink;
+        Node(int l = 0): len(l) {}
+    } node[N];
+    char s[N];
+    int newNode(int l) {
+        node[sz] = Node(l);
+        return sz++;
+    }
+    void clear() {
+        sz = -1, last = 0, tot = 0;
+        s[0] = '$';
+        newNode(0);
+        newNode(-1);
+        node[0].fail = 1;
+    }
+    int getfail(int x) {
+        while(s[tot - node[x].len - 1] != s[tot]) x = node[x].fail;
+        return x;
+    }
+    void insert(char c) {
+        s[++tot] = c;
+        int code = c - 'a';
+        Node& now = node[getfail(last)];
+        if (!now.ch[code]) {
+            int itx = newNode(now.len + 2);
+            Node &x = node[itx];
+            x.fail = node[getfail(now.fail)].ch[code];
+            Node &fx = node[x.fail];
+            x.dep = fx.dep + 1;
+            now.ch[code] = itx;
+            x.dif = x.len - fx.len;
+            if (x.dif == fx.dif)
+                x.slink = fx.slink;
+            else
+                x.slink = x.fail;
+        }
+        last = now.ch[code];
+        node[last].cnt++;
+    }
+};    
+\end{lstlisting}
