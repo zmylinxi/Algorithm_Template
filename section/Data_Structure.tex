@@ -4,6 +4,59 @@
 
 \subsection{线段树}
 
+
+\subsubsection{zkw线段树}
+
+\begin{lstlisting}[language=C++]
+template<typename T> struct Segtree {
+    static const int N = 1e5 + 5;
+    T dat[N << 2]; int siz;
+
+    void init(int n) {
+        siz = 1 << int(ceil(log2(n)));
+        for (int i = siz; i < siz+n; i++) dat[i] = T();
+        for (int i = siz-1; i; i--) dat[i].upd(dat[i << 1], dat[i << 1 | 1]);
+    }
+    // 单点查询-区间修改
+    T query(int n) {
+        T val; int p = siz + n;
+        do {
+            dat[p].stat(val);
+        } while (p >>= 1);
+        return val;
+    }
+
+    void change(int l, int r, T dt) {
+        l += siz, r += siz;
+        while(l <= r) {
+            if (l & 1) dat[l++].upd(dt);
+            if (!(r & 1)) dat[r--].upd(dt);
+            l >>= 1, r >>= 1;
+        }
+    }
+
+    // 单点修改-区间查询
+    void change(int n, int dt) {
+        int p = siz + n;
+        dat[p].change(dt);
+        while (p >>= 1) {
+            dat[p].upd(dat[p << 1], dat[p << 1 | 1]);
+        }
+    }
+
+    T query(int l, int r) {
+        T val;
+        l += siz, r += siz;
+        while(l <= r) {
+            if (l & 1) dat[l++].stat(val);
+            if (!(r & 1)) dat[r--].stat(val);
+            l >>= 1, r >>= 1;
+        }
+        return val;
+    }
+};
+\end{lstlisting}
+
 \subsubsection{动态开点线段树}
 
 \begin{lstlisting}[language=C++]
