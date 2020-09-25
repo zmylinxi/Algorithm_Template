@@ -723,12 +723,72 @@ $$(p -1)! ≡ -1 \space (mod \space p)$$
 
 斯特林公式 $n! = sqrt(2*PI*n)*(n/e)^n$
 
-\begin{lstlisting}
+\begin{lstlisting}[language=C++]
 const double PI = acos(-1.0);
 ll solve(int n){
     double nn = n;
     ll ret = (ll)((0.5*log(2.0*PI*nn) + nn*log(nn) - nn)/log(10.0));
     ++ret;
     return ret;
+}
+\end{lstlisting}
+
+\subsection{MIN25筛}
+
+\begin{lstlisting}[language=C++]
+namespace MIN25 {
+    ll w[N], s1[N], s2[N];
+    int Sqr, plen, m, p[N];
+
+    int getid(ll x, ll n) {
+        return x <= Sqr ? x : m - n / x + 1;
+    }
+
+    int S(ll n) {
+        if (n & 1)
+            return (n + 1) / 2 % MOD * (n % MOD) % MOD;
+        return n / 2 % MOD * ((n + 1) % MOD) % MOD;
+    }
+
+    int f(int n, int c) {
+        return (n ^ c) % MOD;
+    }
+
+    void pre(ll n) {
+        Sqr = sqrt(n), m = 0;
+        for (ll l = 1, r; l <= n; l = r + 1) {
+            r = n / (n / l);
+            w[++m] = r;
+            s1[m] = r, s2[m] = S(r);
+        }
+        p[0] = 1;
+        for(int i = 2; i <= Sqr; i++) {
+            if (s1[i] != s1[i - 1]) {
+                p[++plen] = i;
+                ll lim = (ll)i * i;
+                for (int j = m; lim <= w[j]; j--) {
+                    int id1 = getid(w[j] / i, n), id2 = p[plen - 1];
+                    s1[j] -= (s1[id1] - s1[id2]);
+                    s2[j] -= (ll)i * (s2[id1] - s2[id2]);
+                }
+                s2[i] %= MOD;
+            }
+        }
+        for(int i = 1; i <= m; i++) {
+            s1[i] = (s2[i] - s1[i] + (i > 1) * 2) % MOD;
+        }
+    }
+
+    ll sieve(ll n, int y) {
+        if (n <= 1 || p[y] > n)
+            return 0;
+        pre(n);
+        ll ans = s1[getid(n, n)] - s1[p[y - 1]];
+        for (int i = y; i <= plen && (ll)p[i] * p[i] <= n; i++) {
+            for (ll P = p[i], j = 1; P * p[i] <= n; P *= p[i], j++)
+                ans += sieve(n / P, i + 1) * f(p[i], j) + f(p[i], j + 1);
+        }
+        return ans % MOD;
+    }
 }
 \end{lstlisting}
