@@ -41,14 +41,64 @@ Matrix-Tree 定理(Kirchhoff 矩阵-树定理)
 
 \begin{itemize}
     \item G 的度数矩阵 D[G]是一个 n*n 的矩阵,并且满足:当 i != j 时,dij=0;当 i=j 时,dij 等于 vi 的度数。
-    \item G 的邻接矩阵 A[G]也是一个 n*n 的矩阵, 并且满足:如果 vi、vj 之间有边直接相连,则 aij=1,否则为 0。
+    \item G 的邻接矩阵 A[G]也是一个 n*n 的矩阵, 并且满足:如果 vi、vj 之间有边直接相连,则 aij = 1,否则为 0。
 \end{itemize}
 
 我们定义 G 的 Kirchhoff 矩阵(也称为拉普拉斯算子) C[G] 为 C[G] = D[G] - A[G]
 
 则 Matrix-Tree 定理可以描述为:G 的所有不同的生成树的个数等于其 Kirchhoff 矩阵 C[G]任何一个 n-1 阶主子式的行列式的绝对值。
 
-所谓 n-1 阶主子式,就是对于 r(1≤r≤n),将 C[G]的第 r 行、第 r 列同时去掉后得到的新矩阵,用 Cr[G] 表示。
+所谓 n - 1 阶主子式,就是对于 r(1 ≤ r ≤ n), 将 C[G]的第 r 行、第 r 列同时去掉后得到的新矩阵,用 Cr[G] 表示。
+
+\begin{lstlisting}[language=C++]
+struct Edge {
+    int u, v, w;
+} E[maxn*maxn];
+ll d[maxn][maxn], a[maxn][maxn];
+struct Matrix {
+    ll mat[maxn][maxn];
+    void init(int n) {
+        for(int i = 0; i < n; ++i) {
+            for(int j = 0; j < n; ++j) mat[i][j] = d[i][j] - a[i][j];
+        }
+    }
+    ll det(int n) {
+        ll res = 1;
+        for(int i = 0; i < n; ++i){
+            for(int j = i + 1; j < n; ++j){
+                while(mat[j][i] != 0) {
+                    ll t = mat[i][i]/mat[j][i]%mod;
+                    for(int k = i; k < n; ++k)
+                        mat[i][k] = (mat[i][k] - t*mat[j][k] + mod)%mod;
+                    swap(mat[i], mat[j]);
+                    res = -res;
+                }
+            }
+            res=(res*mat[i][i])%mod;
+        }
+        return (res + mod)%mod;
+    }
+} mat;
+int n, m;
+void init_da() {
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < n; ++j) {
+            d[i][j] = a[i][j] = 0;
+        }
+    }
+}
+void solve() {
+    scanf("%d%d", &n, &m);
+    init_da();
+    for(int ie = 1; ie <= m; ++ie) {
+        int u, v; scanf("%d%d", &u, &v);
+        ++a[u][v]; ++a[v][u];
+        ++d[u][u]; ++d[v][v];
+    }
+    mat.init(n);
+    ll ans = mat.det(n - 1);
+}
+\end{lstlisting}
 
 \subsubsection{最小生成树计数（Kruskal + Matrix Tree 定理）}
 
