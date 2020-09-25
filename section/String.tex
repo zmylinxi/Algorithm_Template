@@ -857,7 +857,7 @@ void solve(int n, T a[]) {
 
 Lyndon 串：对于字符串 $s$，如果 $s$ 的字典序严格小于 $s$ 的所有后缀的字典序，称  是简单串，或者 Lyndon 串 。举一些例子， a , b , ab , aab , abb , ababb , abcd 都是 Lyndon 串。当且仅当  的字典序严格小于它的所有非平凡的循环同构串时，  才是 Lyndon 串。
 
-Lyndon 分解：串 $s$ 的 Lyndon 分解记为 $s = w_1w_2\dotsw_k$ ，其中所有 $w_i$ 为简单串，并且他们的字典序按照非严格单减排序，即 $w_1 \ge w_2 \ge \dots \ge w_k$ 。这样的分解存在且唯一。
+Lyndon 分解：串 $s$ 的 Lyndon 分解记为 $s = w_1 w_2 \dots w_k$ ，其中所有 $w_i$ 为简单串，并且他们的字典序按照非严格单减排序，即 $w_1 \ge w_2 \ge \dots \ge w_k$ 。这样的分解存在且唯一。
 
 \begin{lstlisting}[language=C++]
 vector<string> duval(string const& s) {
