@@ -2038,22 +2038,22 @@ struct LCT {
 struct Euler_Tour_Tree{
     stack<int> sta;
     int tot;
-    int tagp[300005];//记录ETT的点的出现第一次
-    map<int,int> e[300005];//记录ETT的边出现
+    int tagp[300005]; // 记录ETT的点的出现第一次
+    map<int, int> e[300005]; // 记录ETT的边出现
     struct node {
-        int ls,rs,fa,data,size;
+        int ls, rs, fa, data, size;
         int rd;
-        bool tag,stag;//是否有第一次出现的点
+        bool tag, stag; // 是否有第一次出现的点
     } v[600005];
     int new_node(int pt){
         int x;
-        if(!sta.empty())x=sta.top(),sta.pop();
-        else x=++tot;
-        v[x].fa=v[x].ls=v[x].rs=0;
-        v[x].tag=v[x].stag=0;
-        v[x].size=1;
-        v[x].data=pt;
-        v[x].rd=rand();
+        if (!sta.empty()) x = sta.top(), sta.pop();
+        else x = ++tot;
+        v[x].fa = v[x].ls = v[x].rs = 0;
+        v[x].tag = v[x].stag = 0;
+        v[x].size = 1;
+        v[x].data = pt;
+        v[x].rd = rand();
         return x;
     }
     void del_node(int x){
@@ -2061,117 +2061,116 @@ struct Euler_Tour_Tree{
         return;
     }
     void push_up(int rt){
-        v[rt].stag=v[v[rt].ls].stag|v[v[rt].rs].stag|v[rt].tag;
-        v[rt].size=v[v[rt].ls].size+v[v[rt].rs].size+1;
+        v[rt].stag = v[v[rt].ls].stag|v[v[rt].rs].stag|v[rt].tag;
+        v[rt].size = v[v[rt].ls].size + v[v[rt].rs].size + 1;
     }
-    int mer_ge(int x,int y){
-        if(!x||!y)return x|y;
-        if(v[x].rd<=v[y].rd){
-            v[x].rs=mer_ge(v[x].rs,y);
-            v[v[x].rs].fa=x;
+    int mer_ge(int x, int y){
+        if (!x || !y) return x | y;
+        if (v[x].rd <= v[y].rd){
+            v[x].rs = mer_ge(v[x].rs,y);
+            v[v[x].rs].fa = x;
             push_up(x);
             return x;
-        } else if(v[x].rd>=v[y].rd) {
-            v[y].ls=mer_ge(x,v[y].ls);
-            v[v[y].ls].fa=y;
+        } else if (v[x].rd >= v[y].rd) {
+            v[y].ls = mer_ge(x, v[y].ls);
+            v[v[y].ls].fa = y;
             push_up(y);
             return y;
         }
     }
     int get_root(int x){
-        while(v[x].fa)x=v[x].fa;
+        while (v[x].fa) x = v[x].fa;
         return x;
     }
-    void split(int x,int d,int &r1,int &r2){
-        int s1=v[x].ls,s2=v[x].rs;
-        if(d==-1){
-            v[x].rs=0;
+    void split(int x, int d, int &r1, int &r2) {
+        int s1 = v[x].ls, s2 = v[x].rs;
+        if (d == -1){
+            v[x].rs = 0;
             push_up(x);
-            s1=x;
-            v[s2].fa=0;
+            s1 = x;
+            v[s2].fa = 0;
         }
-        if(d==1){
-            v[x].ls=0;
+        if(d == 1){
+            v[x].ls = 0;
             push_up(x);
-            s2=x;
-            v[s1].fa=0;
+            s2 = x;
+            v[s1].fa = 0;
         }
-        if(d!=1&&d!=-1)v[s1].fa=v[s2].fa=0;
-        while(v[x].fa){
-            int p=v[x].fa;
-            if(v[p].ls==x){
-                v[p].ls=s2;
-                v[s2].fa=p;
-                v[s1].fa=0;
-                s2=p;
+        if (d != 1 && d != -1) v[s1].fa = v[s2].fa = 0;
+        while (v[x].fa) {
+            int p = v[x].fa;
+            if (v[p].ls == x) {
+                v[p].ls = s2;
+                v[s2].fa = p;
+                v[s1].fa = 0;
+                s2 = p;
             }
-            if(v[p].rs==x){
-                v[p].rs=s1;
-                v[s1].fa=p;
-                v[s2].fa=0;
-                s1=p;
+            if (v[p].rs == x) {
+                v[p].rs = s1;
+                v[s1].fa = p;
+                v[s2].fa = 0;
+                s1 = p;
             }
-            push_up(x=p);
+            push_up(x = p);
         }
-        r1=s1;
-        r2=s2;
+        r1 = s1; r2 = s2;
     }
     int get_p(int x){
-        if(e[x].empty())return 0;
+        if (e[x].empty()) return 0;
         return e[e[x].begin()->first][x];
     }
-    void link(int x,int y){
-        int p1=new_node(y),p2=new_node(x);
-        if(tagp[x]==-1){
-            v[p2].tag=v[p2].stag=1;
-            tagp[x]=p2;
+    void link(int x, int y){
+        int p1 = new_node(y), p2 = new_node(x);
+        if (tagp[x]==-1){
+            v[p2].tag = v[p2].stag = 1;
+            tagp[x] = p2;
         }
-        if(tagp[y]==-1){
-            v[p1].tag=v[p1].stag=1;
-            tagp[y]=p1;
+        if (tagp[y] == -1){
+            v[p1].tag = v[p1].stag = 1;
+            tagp[y] = p1;
         }
-        int t1,t2,t3;
-        if(e[x].empty())t1=t3=0;
-        else split(e[x].begin()->second,1,t1,t3);
-        if(e[y].empty())t2=0;
+        int t1, t2, t3;
+        if (e[x].empty()) t1 = t3 = 0;
+        else split(e[x].begin()->second, 1, t1, t3);
+        if (e[y].empty()) t2 = 0;
         else {
-            int tt1,tt2;
-            split(e[y].begin()->second,1,tt1,tt2);
-            t2=mer_ge(tt2,tt1);
+            int tt1, tt2;
+            split(e[y].begin()->second, 1, tt1, tt2);
+            t2 = mer_ge(tt2, tt1);
         }
-        e[x][y]=p1;
-        e[y][x]=p2;
-        mer_ge(mer_ge(mer_ge(t1,p1),t2),mer_ge(p2,t3));
+        e[x][y] = p1;
+        e[y][x] = p2;
+        mer_ge(mer_ge(mer_ge(t1, p1), t2), mer_ge(p2, t3));
     }
     void cut(int x,int y) {
-        int p1=e[x][y],p2=e[y][x];
+        int p1 = e[x][y], p2 = e[y][x];
         e[x].erase(e[x].find(y));
         e[y].erase(e[y].find(x));
-        int t11,t12;
-        split(p1,0,t11,t12);
-        if(get_root(p2)==t11){
-            int t21,t22;
-            split(p2,0,t21,t22);
-            mer_ge(t21,t12);
-        }else{
-            int t21,t22;
-            split(p2,0,t21,t22);
-            mer_ge(t11,t22);
+        int t11, t12;
+        split(p1, 0, t11, t12);
+        if(get_root(p2) == t11){
+            int t21, t22;
+            split(p2, 0, t21, t22);
+            mer_ge(t21, t12);
+        } else {
+            int t21, t22;
+            split(p2, 0, t21, t22);
+            mer_ge(t11, t22);
         }
         if(v[p1].tag){
-            if(e[y].empty())tagp[y]=-1;
-            else{
-                tagp[y]=get_p(y);
-                v[tagp[y]].tag=1;
-                for(int i=tagp[y];i;i=v[i].fa)push_up(i);
+            if(e[y].empty()) tagp[y] = -1;
+            else {
+                tagp[y] = get_p(y);
+                v[tagp[y]].tag = 1;
+                for(int i = tagp[y]; i; i = v[i].fa) push_up(i);
             }
         }
-        if(v[p2].tag){
-            if(e[x].empty())tagp[x]=-1;
-            else{
-                tagp[x]=get_p(x);
-                v[tagp[x]].tag=1;
-                for(int i=tagp[x];i;i=v[i].fa)push_up(i);
+        if (v[p2].tag){
+            if (e[x].empty()) tagp[x] = -1;
+            else {
+                tagp[x] = get_p(x);
+                v[tagp[x]].tag = 1;
+                for (int i = tagp[x]; i; i = v[i].fa) push_up(i);
             }
         }
         del_node(p1);
