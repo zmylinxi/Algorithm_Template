@@ -565,6 +565,254 @@ void Query(int lf, int rt) {
 }
 \end{lstlisting}
 
+\subsection{分块}
+
+\subsubsection{分块算法}
+
+\begin{lstlisting}[language=C++]
+ll a[maxn], sum[maxn], add[maxn];
+int l[maxn], r[maxn]; // 每一段的左右端点
+int pos[maxn]; // 每一个位置属于哪一段
+int n, m; // n 数组大小 m 操作次数
+
+void init(){
+    int t = sqrt(n);
+    for(int i = 1; i <= t; ++i){
+        l[i] = (i - 1)*t + 1;
+        r[i] = i*t;
+    }
+    if(r[t] < n){
+        ++t;
+        l[t] = r[t - 1] + 1;
+        r[t] = n;
+    }
+    for(int i = 1; i <= t; ++i){
+        sum[i] = 0;
+        for(int j = l[i]; j <= r[i]; ++j){
+            pos[j] = i;
+            sum[i] += a[j];
+        }
+    }
+}
+void update(int lf, int rt, ll d){ // [lf, rt] 区间内的数全部加 d
+    int p = pos[lf], q = pos[rt];
+    if(p == q){
+        for(int i = lf; i <= rt; ++i){
+            a[i] += d;
+            sum[p] += d;
+        }
+        return ;
+    }
+    for(int i = lf; i <= r[p]; ++i){
+        a[i] += d;
+        sum[p] += d;
+    }
+    for(int i = p + 1; i <= q - 1; ++i) add[i] += d;
+    for(int i = l[q]; i <= rt; ++i){
+        a[i] += d;
+        sum[q] += d;
+    }
+}
+
+ll query(int lf, int rt){
+    ll ret = 0;
+    int p = pos[lf], q = pos[rt];
+    if(p == q){
+        for(int i = lf; i <= rt; ++i) ret += a[i] + add[p];
+        return ret;
+    }
+    for(int i = lf; i <= r[p]; ++i) ret += a[i] + add[p];
+    for(int i = p + 1; i <= q - 1; ++i) ret += sum[i] + add[i]*(r[i] - l[i] + 1LL);
+    for(int i = l[q]; i <= rt; ++i) ret += a[i] + add[q];
+    return ret;
+}
+\end{lstlisting}
+
+\subsubsection{莫队算法}
+
+\begin{lstlisting}[language=C++]
+const int maxn = 2e6 + 5;
+int L[maxn], R[maxn], pos[maxn], cnt[maxn];
+ll num[maxn], ans[maxn], A = 0;
+int n, m;
+struct Query {
+    int l, r, id;
+    bool operator < (const Query& q) const {
+        if(pos[l] == pos[q.l]) {
+            if(pos[l] & 1) return r > q.r;
+            else return r < q.r;
+        }
+        return pos[l] < pos[q.l];
+    }
+}Q[maxn];
+
+void init(){
+    int t = sqrt(n);
+    for(int i = 1; i <= t; ++i){
+        L[i] = (i - 1)*t + 1;
+        R[i] = i*t;
+    }
+    if(R[t] < n){
+        ++t;
+        L[t] = R[t - 1] + 1;
+        R[t] = n;
+    }
+    for(int i = 1; i <= t; ++i) for(int j = L[i]; j <= R[i]; ++j) pos[j] = i;
+}
+
+void del(int x){
+    if(--cnt[num[x]] == 0) A -= num[x];
+}
+
+void add(int x){
+    if(++cnt[num[x]] == 1) A += num[x];
+}
+void Mo() {
+    init();
+    sort(Q, Q + m);
+    int lf = 1, rt = 0;
+    A = 0;
+    for(int i = 0; i < m; ++i){
+        while(lf < Q[i].l) del(lf++);
+        while(lf > Q[i].l) add(--lf);
+        while(rt < Q[i].r) add(++rt);
+        while(rt > Q[i].r) del(rt--);
+        ans[Q[i].id] = A;
+    }
+}
+int main(){
+    int t; scanf("%d", &t);
+    while(t--) {
+        scanf("%d", &n);
+        ll mx = 0;
+        for(int i = 1; i <= n; ++i){
+            scanf("%lld", &num[i]);
+            if(num[i] > mx) mx = num[i];
+        }
+        for(int i = 0; i <= mx; ++i) cnt[i] = 0;
+        scanf("%d", &m);
+        for(int i = 0; i < m; ++i){
+            scanf("%d%d", &Q[i].l, &Q[i].r);
+            Q[i].id = i;
+        }
+        Mo();
+        for(int i = 0; i < m; ++i) printf("%lld\n", ans[i]);
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{待修改莫队}
+
+块大小为 $(nt) ^ \frac{1}{3}$ 可以达到最快的理论复杂度 $O((n ^ 4 t) ^ \frac{1}{3})$ $n$ 为数组大小，$t$ 为修改次数
+
+
+墨墨购买了一套 N 支彩色画笔（其中有些颜色可能相同），摆成一排，你需要回答墨墨的提问。墨墨会像你发布如下指令：
+
+Q L R 代表询问你从第 L 支画笔到第 R 支画笔中共有几种不同颜色的画笔。 
+
+R P Col 把第P支画笔替换为颜色 Col。
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+
+const int maxn = 1e6 + 5;
+int L[maxn], R[maxn], pos[maxn];
+int a[maxn], b[maxn];
+int cnt[maxn], ans[maxn], Ans = 0;
+int n, m, k, nq = 0, nc = 0;
+struct Query {
+    int l, r;
+    int pre, id;
+    bool operator < (const Query& q) const {
+        if(pos[l] == pos[q.l]) {
+            if(pos[r] == pos[q.r]) return pre < q.pre;
+            return pos[r] < pos[q.r];
+        }
+        return pos[l] < pos[q.l];
+    }
+} Q[maxn];
+struct Change {
+    int pos, bfr, aft;
+} C[maxn];
+
+void init() {
+    double val = (double)n*(1.0 + nc);
+    int sz = pow(val, 0.333333333);
+    int num = n/sz;
+    for(int i = 1; i <= num; ++i){
+        L[i] = (i - 1)*sz + 1;
+        R[i] = i*sz;
+    }
+    if(R[num] < n){
+        ++num;
+        L[num] = R[num - 1] + 1;
+        R[num] = n;
+    }
+    for(int i = 1; i <= num; ++i) for(int j = L[i]; j <= R[i]; ++j) pos[j] = i;
+}
+void add(int x) {
+    if(++cnt[a[x]] == 1) ++Ans;
+}
+void del(int x) {
+    if(--cnt[a[x]] == 0) --Ans;
+}
+void update(int x, int lf, int rt) {
+    if(C[x].pos >= lf && C[x].pos <= rt) {
+        if(--cnt[C[x].bfr] == 0) --Ans;
+        if(++cnt[C[x].aft] == 1) ++Ans;
+    }
+    a[C[x].pos] = C[x].aft;
+}
+void revoke(int x, int lf, int rt) {
+    if(C[x].pos >= lf && C[x].pos <= rt) {
+        if(--cnt[C[x].aft] == 0) --Ans;
+        if(++cnt[C[x].bfr] == 1) ++Ans;
+    }
+    a[C[x].pos] = C[x].bfr;
+}
+void Mo() {
+    init(); Ans = 0;
+    sort(Q, Q + nq);
+    int lf = 1, rt = 0, now = 0;
+    for(int i = 0; i < nq; ++i) {
+        while(lf < Q[i].l) del(lf++);
+        while(lf > Q[i].l) add(--lf);
+        while(rt < Q[i].r) add(++rt);
+        while(rt > Q[i].r) del(rt--);
+        while(now < Q[i].pre) update(++now, Q[i].l, Q[i].r);
+        while(now > Q[i].pre) revoke(now--, Q[i].l, Q[i].r);
+        ans[Q[i].id] = Ans;
+    }
+}
+char s[5];
+int main(){
+    scanf("%d%d", &n, &m);
+    for(int i = 1; i <= n; ++i) {
+        scanf("%d", &a[i]);
+        b[i] = a[i];
+    }
+    for(int i = 1; i <= 1000000; ++i) cnt[i] = 0;
+    while(m--) {
+        scanf("%s", s);
+        if(s[0] == 'Q') {
+            scanf("%d%d", &Q[nq].l, &Q[nq].r);
+            Q[nq].pre = nc; Q[nq].id = nq;
+            ++nq;
+        } else {
+            ++nc;
+            scanf("%d%d", &C[nc].pos, &C[nc].aft);
+            C[nc].bfr = b[C[nc].pos];
+            b[C[nc].pos] = C[nc].aft;
+        }
+    }
+    Mo();
+    for(int i = 0; i < nq; ++i) printf("%d\n", ans[i]);
+    return 0;
+}
+\end{lstlisting}
+
 \subsection{树链剖分（轻重链剖分） + 线段树维护链上信息}
 
 Heavy-light Decomposition ：HLD
