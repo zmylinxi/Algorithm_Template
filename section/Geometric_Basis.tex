@@ -1,43 +1,42 @@
 
 
-\section{几何基础}
+\section{平面几何基础}
 
 \subsection{点和向量}
 
 \begin{lstlisting}[language=C++]
+const double eps = 1e-6;
 struct Point{
     double x, y;
-    Point(double x = 0, double y = 0):x(x),y(y){}
+    Point(double x = 0, double y = 0):x(x), y(y) {}
 };
 typedef Point Vector;
-Vector operator + (Vector A, Vector B){
+Vector operator+ (Vector A, Vector B){
     return Vector(A.x+B.x, A.y+B.y);
 }
-Vector operator - (Point A, Point B){
+Vector operator- (Point A, Point B){
     return Vector(A.x-B.x, A.y-B.y);
 }
-Vector operator * (Vector A, double p){
+Vector operator* (Vector A, double p){
     return Vector(A.x*p, A.y*p);
 }
-Vector operator / (Vector A, double p){
+Vector operator/ (Vector A, double p){
     return Vector(A.x/p, A.y/p);
 }
-bool operator < (const Point& a, const Point& b){
+bool operator< (const Point& a, const Point& b){
     if(a.x == b.x)
         return a.y < b.y;
     return a.x < b.x;
 }
-const double eps = 1e-6;
-int sgn(double x){
+int sgn(double x) {
     if(fabs(x) < eps) return 0;
     if(x < 0) return -1;
     return 1;
 }
-bool operator == (const Point& a, const Point& b){
+bool operator== (const Point& a, const Point& b){
     if(sgn(a.x - b.x) == 0 && sgn(a.y - b.y) == 0) return true;
     return false;
 }
-
 double Dot(Vector A, Vector B){
     return A.x*B.x + A.y*B.y;
 }
@@ -45,18 +44,18 @@ double Length(Vector A){
     return sqrt(Dot(A, A));
 }
 double Angle(Vector A, Vector B){
-    return acos(Dot(A, B) / Length(A) / Length(B));
+    return acos(Dot(A, B)/Length(A)/Length(B));
 }
 double Cross(Vector A, Vector B){
-    return A.x*B.y-A.y*B.x;
+    return A.x*B.y - A.y*B.x;
 }
-double Area2(Point A, Point B, Point C){
-    return Cross(B-A, C-A);
+double Area2(Point A, Point B, Point C) {
+    return Cross(B - A, C - A);
 }
-Vector Rotate(Vector A, double rad){//rad为弧度 且为逆时针旋转的角
-    return Vector(A.x*cos(rad)-A.y*sin(rad), A.x*sin(rad)+A.y*cos(rad));
+Vector Rotate(Vector A, double rad) { // 向量 A 逆时针旋转 rad 弧度
+    return Vector(A.x*cos(rad) - A.y*sin(rad), A.x*sin(rad) + A.y*cos(rad));
 }
-Vector Normal(Vector A){//向量A左转90°的单位法向量
+Vector Normal(Vector A) { // 向量 A 逆时针转 90° 的单位法向量
     double L = Length(A);
     return Vector(-A.y/L, A.x/L);
 }
@@ -68,31 +67,27 @@ bool ToLeftTest(Point a, Point b, Point c){
 \subsection{复数类实现平面向量}
 
 \begin{lstlisting}[language=C++]
-#include <complex>
-using namespace std;
 typedef complex<double> Point;
 // 复数定义向量后，自动拥有构造函数、加减法和数量积
 typedef Point Vector; 
 const double eps = 1e-9;
 int sgn(double x){
-    if(fabs(x) < eps)
-        return 0;
-    if(x < 0)
-        return -1;
+    if(fabs(x) < eps) return 0;
+    if(x < 0) return -1;
     return 1;
 }
-double Length(Vector A){
+double Length(Vector A) {
     return abs(A);
 }
 // conj(a + bi) 返回共轭复数 a - bi
-double Dot(Vector A, Vector B){
+double Dot(Vector A, Vector B) {
     return real(conj(A)*B);
 }
-double Cross(Vector A, Vector B){
+double Cross(Vector A, Vector B) {
     return imag(conj(A)*B);
 }
 // exp(p) 返回以 e 为底复数的指数
-Vector Rotate(Vector A, double rad){
+Vector Rotate(Vector A, double rad) {
     return A*exp(Point(0, rad));
 }
 \end{lstlisting}
@@ -102,10 +97,10 @@ Vector Rotate(Vector A, double rad){
 \subsubsection{直线定义}
 
 \begin{lstlisting}[language=C++]
-struct Line{
+struct Line {
     Point v, p;
     Line(Point v, Point p):v(v), p(p) {}
-    Point point(double t){ // 返回点 P = v + (p - v)*t
+    Point point(double t) { // 返回点 P = v + (p - v)*t
         return v + (p - v)*t;
     }
 };
@@ -115,7 +110,7 @@ struct Line{
 
 \begin{lstlisting}[language=C++]
 // 调用前需保证 Cross(v, w) != 0
-Point GetLineIntersection(Point P, Vector v, Point Q, Vector w){
+Point GetLineIntersection(Point P, Vector v, Point Q, Vector w) {
     Vector u = P-Q;
     double t = Cross(w, u)/Cross(v, w);
     return P + v*t;
@@ -147,8 +142,8 @@ double DistanceToSegment(Point P, Point A, Point B) {
 \subsubsection{点 P 在直线 AB 上的投影点}
 
 \begin{lstlisting}[language=C++]
-Point GetLineProjection(Point P, Point A, Point B){
-    Vector v = B-A;
+Point GetLineProjection(Point P, Point A, Point B) {
+    Vector v = B - A;
     return A + v*(Dot(v, P-A)/Dot(v, v));
 }
 \end{lstlisting}
@@ -156,7 +151,15 @@ Point GetLineProjection(Point P, Point A, Point B){
 \subsubsection{判断 p 点是否在线段 a1a2 上}
 
 \begin{lstlisting}[language=C++]
-bool SegmentProperIntersection(Point a1, Point a2, Point b1, Point b2){
+bool OnSegment(Point p, Point a1, Point a2) {
+    return (sgn(Cross(a1 - p, a2 - p)) == 0 && sgn(Dot(a1 - p, a2 - p)) <= 0);
+}
+\end{lstlisting}
+
+\subsubsection{线段 a1a2 是否与线段 b1b2 相交}
+
+\begin{lstlisting}[language=C++]
+bool SegmentProperIntersection(Point a1, Point a2, Point b1, Point b2) {
     double c1 = Cross(a2-a1, b1-a1), c2 = Cross(a2-a1, b2-a1);
     double c3 = Cross(b2-b1, a1-b1), c4 = Cross(b2-b1, a2-b1);
     // if 判断控制是否允许线段在端点处相交，根据需要添加
@@ -181,7 +184,7 @@ struct Point {
 struct Line{
     Point a, b;
 };
-Point Intersection(Line u, Line v){
+Point Intersection(Line u, Line v) {
     Point ret = u.a;
     double t1 = (u.a.x - v.a.x)*(v.a.y - v.b.y) - (u.a.y - v.a.y)*(v.a.x - v.b.x);
     double t2 = (u.a.x - u.b.x)*(v.a.y - v.b.y) - (u.a.y - u.b.y)*(v.a.x - v.b.x);
@@ -191,7 +194,7 @@ Point Intersection(Line u, Line v){
     return ret;
 }
 // 外心
-Point Circumcenter(Point a, Point b, Point c){
+Point Circumcenter(Point a, Point b, Point c) {
     Line u, v;
     u.a.x = (a.x + b.x)/2;
     u.a.y = (a.y + b.y)/2;
@@ -204,7 +207,7 @@ Point Circumcenter(Point a, Point b, Point c){
     return Intersection(u, v);
 }
 // 垂心
-Point Perpencenter(Point a, Point b, Point c){
+Point Perpencenter(Point a, Point b, Point c) {
     Line u, v;
     u.a = c;
     u.b.x = u.a.x - a.y + b.y;
@@ -217,7 +220,7 @@ Point Perpencenter(Point a, Point b, Point c){
 // 三角形重心
 // 到三角形三顶点距离的平方和最小的点
 // 三角形内到三边距离之积最大的点
-Point barycenter(Point a, Point b, Point c){
+Point barycenter(Point a, Point b, Point c) {
     Line u, v;
     u.a.x = (a.x + b.x)/2;
     u.a.y = (a.y + b.y)/2;
@@ -227,20 +230,20 @@ Point barycenter(Point a, Point b, Point c){
     v.b = b;
     return Intersection(u, v);
 }
-inline double Dist(Point p1, Point p2){
+inline double Dist(Point p1, Point p2) {
     return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
 }
 // 三角形费马点
 // 到三角形三顶点距离之和最小的点
-Point Ferment(Point a, Point b, Point c){
+Point Ferment(Point a, Point b, Point c) {
     Point u, v;
     double step = fabs(a.x) + fabs(a.y) + fabs(b.x) + fabs(b.y) + fabs(c.x) + fabs(c.y);
     u.x = (a.x + b.x + c.x)/3;
     u.y = (a.y + b.y + c.y)/3;
-    while(step >1e-10){
-        for(int k = 0; k < 10; step /= 2, k++){
-            for(int i = -1; i <= 1; ++i){
-                for(int j = -1; j <= 1; ++j){
+    while (step >1e-10){
+        for (int k = 0; k < 10; step /= 2, k++) {
+            for (int i = -1; i <= 1; ++i){
+                for (int j = -1; j <= 1; ++j){
                     v.x = u.x + step*i;
                     v.y = u.y + step*j;
                     double t1 = Dist(u, a) + Dist(u, b) + Dist(u, c);
@@ -260,11 +263,11 @@ Point Ferment(Point a, Point b, Point c){
 
 \begin{lstlisting}[language=C++]
 // p 为端点集合，n 为端点个数
-double PolygonArea(Point *p, int n){
-    double s = 0;
-    for(int i = 1; i < n-1; ++i)
-        s += Cross(p[i]-p[0], p[i+1]-p[0]);
-    return s;
+double PolygonArea(Point *p, int n) {
+    double ret = 0;
+    for (int i = 1; i < n-1; ++i)
+        ret += Cross(p[i]-p[0], p[i+1]-p[0]);
+    return ret;
 }
 \end{lstlisting}
 
@@ -272,18 +275,18 @@ double PolygonArea(Point *p, int n){
 
 \begin{lstlisting}[language=C++]
 // 判断点是否在多边形内，若点在多边形内返回1，在多边形外部返回0，在多边形上返回-1
-int isPointInPolygon(Point p, vector<Point> poly){
+int isPointInPolygon(Point p, vector<Point> poly) {
     int wn = 0;
     int n = poly.size();
-    for(int i = 0; i < n; ++i){
-        if(OnSegment(p, poly[i], poly[(i+1)%n])) return -1;
+    for (int i = 0; i < n; ++i) {
+        if (OnSegment(p, poly[i], poly[(i+1)%n])) return -1;
         int k = sgn(Cross(poly[(i+1)%n] - poly[i], p - poly[i]));
         int d1 = sgn(poly[i].y - p.y);
         int d2 = sgn(poly[(i+1)%n].y - p.y);
-        if(k > 0 && d1 <= 0 && d2 > 0) wn++;
-        if(k < 0 && d2 <= 0 && d1 > 0) wn--;
+        if (k > 0 && d1 <= 0 && d2 > 0) ++wn;
+        if (k < 0 && d2 <= 0 && d1 > 0) --wn;
     }
-    if(wn != 0) return 1;
+    if (wn != 0) return 1;
     return 0;
 }
 \end{lstlisting}
@@ -291,38 +294,13 @@ int isPointInPolygon(Point p, vector<Point> poly){
 \subsubsection{计算不自交多边形与直线相交长度和}
 
 \begin{lstlisting}[language=C++]
-const int maxn = 1e3 + 5;
-struct Point{
-    double x, y;
-    Point(double x = 0, double y = 0):x(x),y(y){}
-} p[maxn];
-typedef Point Vector;
-Vector operator - (Point A, Point B){
-    return Vector(A.x-B.x, A.y-B.y);
-}
-const double eps = 1e-5;
-int sgn(double x){
-    if(fabs(x) < eps)
-        return 0;
-    if(x < 0)
-        return -1;
-    return 1;
-}
-double Dot(Vector A, Vector B){
-    return A.x*B.x + A.y*B.y;
-}
-double Length(Vector A){
-    return sqrt(Dot(A, A));
-}
-double Cross(Vector A, Vector B){
-    return A.x*B.y-A.y*B.x;
-}
-struct node{
+Point p[maxn];
+struct node {
     double len;
     int cs;
     node(double len = 0, int cs = 0):len(len), cs(cs){}
-    bool operator < (const node& nd) const{
-        return len < nd.len;
+    bool operator< (const node& rhs) const{
+        return len < rhs.len;
     }
 };
 double cal(Point A, Point B, Point C, Point D){
@@ -346,14 +324,14 @@ double solve(int n, Point A, Point B){
     double ret = 0;
     for(int i = 0; i < sz - 1; ++i){
         wn += v[i].cs;
-        if(wn) ret += v[i + 1].len - v[i].len;
+        if(wn != 0) ret += v[i + 1].len - v[i].len;
     }
     return ret;
 }
 int main(){
     int n, m; scanf("%d%d", &n, &m);
     for(int i = 0; i < n; ++i) scanf("%lf%lf", &p[i].x, &p[i].y);
-    while(m--){
+    while(m--) {
         Point A, B;
         scanf("%lf%lf%lf%lf", &A.x, &A.y, &B.x, &B.y);
         double ans = solve(n, A, B);
@@ -371,7 +349,7 @@ int main(){
 struct Circle{
     Point c; double r;
     Circle(Point c, double r):c(c), r(r) {}
-    Point point(double a){//通过圆心角求坐标
+    Point point(double a){ // 通过圆心角求坐标
         return Point(c.x + cos(a)*r, c.y + sin(a)*r);
     }
 };
@@ -381,35 +359,34 @@ struct Circle{
 
 \begin{lstlisting}[language=C++]
 // 求圆与直线交点
-int getLineCircleIntersection(Line L, Circle C, double& t1, double& t2, vector<Point>& sol){
+int getLineCircleIntersection(Line L, Circle C, double& t1, double& t2, vector<Point>& sol) {
     double a = L.v.x, b = L.p.x - C.c.x, c = L.v.y, d = L.p.y - C.c.y;
     double e = a*a + c*c, f = 2*(a*b + c*d), g = b*b + d*d - C.r*C.r;
     double delta = f*f - 4*e*g; // 判别式
-    if(sgn(delta) < 0) // 相离
-        return 0;
-    if(sgn(delta) == 0){ // 相切
-        t1 = -f /(2*e);
-        t2 = -f /(2*e);
-        sol.push_back(L.point(t1));//sol存放交点本身
-        return 1;
+    if (sgn(delta) < 0)
+        return 0; // 相离
+    if (sgn(delta) == 0) {
+        t1 = -f/(2.0*e);
+        t2 = -f/(2.0*e);
+        sol.push_back(L.point(t1)); // sol 存放交点本身
+        return 1; // 相切
     }
-    // 相交
-    t1 = (-f - sqrt(delta))/(2*e);
+    t1 = (-f - sqrt(delta))/(2.0*e);
     sol.push_back(L.point(t1));
-    t2 = (-f + sqrt(delta))/(2*e);
+    t2 = (-f + sqrt(delta))/(2.0*e);
     sol.push_back(L.point(t2));
-    return 2;
+    return 2; // 相交
 }
 \end{lstlisting}
 
 \subsubsection{求两圆相交面积}
 
 \begin{lstlisting}[language=C++]
+const double pi = acos(-1.0);
 double AreaOfOverlap(Point c1, double r1, Point c2, double r2){
     double d = Length(c1 - c2);
-    if(r1 + r2 < d + eps)
-        return 0.0;
-    if(d < fabs(r1 - r2) + eps){
+    if(sgn(r1 + r2 - d) < 0) return 0.0;
+    if(sgn(d - fabs(r1 - r2)) < 0) {
         double r = min(r1, r2);
         return pi*r*r;
     }
@@ -419,7 +396,7 @@ double AreaOfOverlap(Point c1, double r1, Point c2, double r2){
     double t2 = acos((d - x)/r2);
     double s1 = r1*r1*t1;
     double s2 = r2*r2*t2;
-    double s3 = 2*sqrt(p*(p - r1)*(p - r2)*(p - d));
+    double s3 = 2.0*sqrt(p*(p - r1)*(p - r2)*(p - d));
     return s1 + s2 - s3;
 }
 \end{lstlisting}
@@ -441,20 +418,20 @@ $$S = a + 2b - 1$$
 \subsubsection{多边形内部和边上网格点数量}
 
 \begin{lstlisting}[language=C++]
-struct Point{
+struct Point {
     int x, y;
 };
 // 多边形上的网格点个数
-int Onedge(int n, Point* p){
-int re  t = 0;
-    for(int i = 0; i < n; ++i)
+int Onedge(int n, Point* p) {
+    int ret = 0;
+    for (int i = 0; i < n; ++i)
         ret += __gcd(abs(p[i].x - p[(i + 1)%n].x), abs(p[i].y - p[(i + 1)%n].y));
     return ret;
 }
 // 多边形内的网格点个数
-int Inside(int n, Point* p){
+int Inside(int n, Point* p) {
     int ret = 0;
-    for(int i = 0; i < n; ++i)
+    for (int i = 0; i < n; ++i)
         ret += p[(i + 1)%n].y*(p[i].x - p[(i + 2)%n].x);
     ret = (abs(ret) - Onedge(n, p))/2 + 1;
     return ret;

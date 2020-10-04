@@ -4,27 +4,9 @@
 
 \subsection{凸包 Andrew 算法}
 
+计算凸包，输入点数组为 p，个数为 n，输出点数组为 ch 。函数返回值为凸包顶点数
+
 \begin{lstlisting}[language=C++]
-//计算凸包，输入点数组为 p，个数为 n， 输出点数组为 ch。函数返回凸包顶点数
-struct Point {
-    double x, y;
-    Point(double x = 0, double y = 0) :x(x), y(y) {}
-};
-typedef Point Vector;
-const double eps = 1e-6;
-bool operator < (const Point& a, const Point& b) {
-    if(a.x == b.x)
-        return a.y < b.y;
-    return a.x < b.x;
-}
-int sgn(double x) {
-    if(fabs(x) < eps) return 0;
-    if(x < 0) return -1;
-    return 1;
-}
-double Cross(Vector A, Vector B) {
-    return A.x * B.y - A.y * B.x;
-}
 int ConvexHull(Point* p, int n, Point* ch) {
     std::sort(p, p + n);
     int m = 0;
@@ -111,76 +93,41 @@ double RotatingCalipers(Point* p, int n){
 \subsection{半平面交O(nlogn)}
 
 \begin{lstlisting}[language=C++]
-const double eps = 1e-6;
-struct Point{
-    double x, y;
-    Point(double x = 0, double y = 0):x(x),y(y){}
-};
-typedef Point Vector;
-Vector operator + (Vector A, Vector B){
-    return Vector(A.x+B.x, A.y+B.y);
-}
-Vector operator - (Point A, Point B){
-    return Vector(A.x-B.x, A.y-B.y);
-}
-Vector operator * (Vector A, double p){
-    return Vector(A.x*p, A.y*p);
-}
-int sgn(double x){
-    if(fabs(x) < eps)
-        return 0;
-    if(x < 0)
-        return -1;
-    return 1;
-}
-double Dot(Vector A, Vector B){
-    return A.x*B.x + A.y*B.y;
-}
-double Cross(Vector A, Vector B){
-    return A.x*B.y-A.y*B.x;
-}
-double Length(Vector A){
-    return sqrt(Dot(A, A));
-}
-Vector Normal(Vector A){//向量A左转90°的单位法向量
-    double L = Length(A);
-    return Vector(-A.y/L, A.x/L);
-}
 struct Line{
-    Point p;//直线上任意一点
-    Vector v;//方向向量，它的左边就是对应的半平面
-    double ang;//极角，即从x轴正半轴旋转到向量v所需要的角（弧度）
+    Point p; // 直线上任意一点
+    Vector v; // 方向向量，它的左边就是对应的半平面
+    double ang; // 极角，即从 x 轴正半轴旋转到向量 v 所需要的角（弧度）
     Line(){}
     Line(Point p, Vector v) : p(p), v(v){
         ang = atan2(v.y, v.x);
     }
-    bool operator < (const Line& L) const {//排序用的比较运算符
+    bool operator< (const Line& L) const {//排序用的比较运算符
         return ang < L.ang;
     }
 };
-//点p在有向直线L的左侧
+// 点 p 在有向直线 L 的左侧
 bool OnLeft(Line L, Point p){
     return Cross(L.v, p - L.p) > 0;
 }
-//两直线交点。假定交点唯一存在
+// 两直线交点。假定交点唯一存在
 Point GetIntersection(Line a, Line b){
     Vector u = a.p - b.p;
     double t = Cross(b.v, u)/Cross(a.v, b.v);
     return a.p + a.v*t;
 }
-//半平面交的主过程
+// 半平面交的主过程
 int HalfplaneIntersection(Line* L, int n, Point* poly){
-    sort(L, L + n);//按照极角排序
-    int fst = 0, lst = 0;//双端队列的第一个元素和最后一个元素
-    Point *P = new Point[n];//p[i] 为 q[i]与q[i + 1]的交点
-    Line *q = new Line[n];//双端队列
-    q[fst = lst = 0] = L[0];//初始化为只有一个半平面L[0]
+    sort(L, L + n); // 按照极角排序
+    int fst = 0, lst = 0; // 双端队列的第一个元素和最后一个元素
+    Point *P = new Point[n]; // p[i] 为 q[i]与q[i + 1]的交点
+    Line *q = new Line[n]; // 双端队列
+    q[fst = lst = 0] = L[0]; // 初始化为只有一个半平面L[0]
     for(int i = 1; i < n; ++i){
         while(fst < lst && !OnLeft(L[i], P[lst - 1])) --lst;
         while(fst < lst && !OnLeft(L[i], P[fst])) ++fst;
         q[++lst] = L[i];
         if(sgn(Cross(q[lst].v, q[lst - 1].v)) == 0){
-            //两向量平行且同向，取内侧一个
+            // 两向量平行且同向，取内侧一个
             --lst;
             if(OnLeft(q[lst], L[i].p)) q[lst] = L[i];
         }
@@ -188,10 +135,10 @@ int HalfplaneIntersection(Line* L, int n, Point* poly){
             P[lst - 1] = GetIntersection(q[lst - 1], q[lst]);
     }
     while(fst < lst && !OnLeft(q[fst], P[lst - 1])) --lst;
-    //删除无用平面
-    if(lst - fst <= 1) return 0;//空集
-    P[lst] = GetIntersection(q[lst], q[fst]);//计算首尾两个半平面的交点
-    //从deque复制到输出中
+    // 删除无用平面
+    if(lst - fst <= 1) return 0; // 空集
+    P[lst] = GetIntersection(q[lst], q[fst]); // 计算首尾两个半平面的交点
+    // 从 deque 复制到输出中
     int m = 0;
     for(int i = fst; i <= lst; ++i) poly[m++] = P[i];
     return m;
@@ -201,39 +148,30 @@ int HalfplaneIntersection(Line* L, int n, Point* poly){
 \subsection{平面最近点对O(nlogn)}
 
 \begin{lstlisting}[language=C++]
-struct Point {
-    double x,y;
-    bool operator <(const Point &a)const {
-        return x < a.x;
-    }
-};
 inline double dist(const Point &p1, const Point &p2) {
     return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
 }
 Point p[maxn], q[maxn];
 double ClosestPair(int l, int r) {
-    if(l == r)
-        return inf;
-    int mid = (l+r)>>1;
+    if(l == r) return inf;
+    int mid = (l + r) >> 1;
     double tx = p[mid].x;
     int tot = 0;
     double ret = min(ClosestPair(l, mid), ClosestPair(mid + 1, r));
     for(int i = l, j = mid + 1; (i <= mid || j <= r); ++i) {
         while(j <= r && (p[i].y > p[j].y || i > mid)) {
             q[tot++] = p[j];
-            j++; //归并按y排序
+            ++j; // 归并按 y 排序
         }
-        if(abs(p[i].x - tx) < ret && i <= mid) { //选择中间符合要求的点
+        if(abs(p[i].x - tx) < ret && i <= mid) { // 选择中间符合要求的点
             for(int k = j - 1; k > mid && j - k < 3; --k)
                 ret = min(ret, dist(p[i], p[k]));
             for(int k = j; k <= r && k-j < 2; ++k)
                 ret = min(ret, dist(p[i], p[k]));
         }
-        if(i <= mid)
-            q[tot++] = p[i];
+        if(i <= mid) q[tot++] = p[i];
     }
-    for(int i = l, j = 0; i <= r; ++i, ++j)
-        p[i] = q[j];
+    for(int i = l, j = 0; i <= r; ++i, ++j) p[i] = q[j];
     return ret;
 }
 \end{lstlisting}
@@ -245,18 +183,18 @@ const int maxn = 3e2 + 5;
 const double PI = acos(-1.0);
 struct Point{
     double x, y;
-}p[maxn];
+} p[maxn];
 struct Angle{
     double pos;
     bool in;
     bool operator < (const Angle& a) const {
         return pos < a.pos;
     }
-}a[maxn<<1];
+}a[maxn << 1];
 inline double Dist(Point& p1, Point& p2){
     return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
 }
-//点集的大小n，给定圆的半径r，返回最多覆盖的点的个数
+// 点集的大小 n，给定圆的半径 r，返回最多覆盖的点的个数
 int solve(int n, double r){
     int ret = 1;
     for(int i = 0; i < n; ++i){
@@ -288,7 +226,6 @@ int solve(int n, double r){
 
 \subsubsection{题目大意}
 
-
 对于一个正多边形，只给出了其中三点的坐标，求这个多边形可能的最小面积，给出的三个点一定能够组成三角形。
 
 \subsubsection{思路}
@@ -305,10 +242,9 @@ int solve(int n, double r){
 const double pi = acos(-1.0);
 const double eps = 2*pi/101;
 struct Point{
-    double x;
-    double y;
-    Point(double x = 0, double y = 0):x(x),y(y){}
-}p[5];
+    double x, y;
+    Point(double x = 0, double y = 0):x(x), y(y){}
+} p[5];
 int sgn(double x){
     if(fabs(x) < eps) return 0;
     if(x > 0) return 1;
