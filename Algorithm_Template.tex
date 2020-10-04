@@ -8,6 +8,7 @@
 \usepackage{geometry}
 \usepackage[hidelinks]{hyperref}
 % \usepackage{fontspec}
+\usepackage{fancyhdr}
 
 \geometry{margin=1in}
 
@@ -36,9 +37,13 @@
 \begin{document}
     % \setmainfont{Courier New Bold}
     \maketitle
+    % \newpage
     \tableofcontents
     \newpage
-
+    \pagestyle{empty}
+    \newpage
+    \pagestyle{fancy}
+    \setcounter{page}{1}
     \input{section/Number_Theory.tex}
     \input{section/Linear_Algebra.tex}
     \input{section/Combinatorics.tex}
