@@ -384,13 +384,13 @@ bool DCS() {
 \begin{lstlisting}[language=C++]
 struct Node {
     int next, v;
-} star[maxn<<1];
+} star[maxn << 1];
 int head[maxn], tot;
 int dfn[maxn], low[maxn], vis[maxn], cnt;
 int s[maxn], color[maxn], top, col;
 int pre[maxn];
 
-void init(){
+void init() {
     tot = 0, cnt = 0;
     col = 0, top = -1;
     memset(vis, 0, sizeof(vis));
@@ -398,7 +398,7 @@ void init(){
     memset(head, -1, sizeof(vis));
 }
 
-void addedge(int u, int v){
+void addedge(int u, int v) {
     star[tot].next = head[u];
     star[tot].v = v;
     head[u] = tot++;
@@ -408,21 +408,88 @@ void Tarjan(int u){
     vis[u] = true;
     dfn[u] = low[u] = cnt++;
     s[++top] = u;
-    for(int i = head[u]; ~i; i = star[i].next){
+    for (int i = head[u]; ~i; i = star[i].next) {
         int v = star[i].v;
-        if(!vis[v]) {
+        if (!vis[v]) {
             pre[v] = u;
             Tarjan(v);
         }
         if(v != pre[u]) low[u] = min(low[u], low[v]);
     }
 
-    if(dfn[u] == low[u]){
+    if (dfn[u] == low[u]){
         ++col;
-        do{
+        do {
             color[s[top]] = col;
-        }while(top != -1 && s[top--] != u);
+        } while(top != -1 && s[top--] != u);
     }
+}
+\end{lstlisting}
+
+\subsubsection{无向图求割点及割点强度}
+
+\begin{lstlisting}[language=C++]
+int n, m;
+struct Gragh {
+    struct Edge {
+        int to, nxt;
+    } E[maxn << 1];
+    int head[maxn], tot;
+    void init(int n) {
+        for (int i = 0; i <= n; ++i) head[i] = -1;
+        tot = 0;
+    }
+    void add_edge(int u, int v) {
+        E[tot] = {v, head[u]};
+        head[u] = tot++;
+    }
+} G;
+int num, root, blocks;
+int dfn[maxn], low[maxn];
+int cv[maxn], cc[maxn], belong[maxn];
+// cv[i]: 删掉节点 i 之后，断成 (cv[i] + 1) 个联通块
+void Tarjan(int x) {
+    dfn[x] = low[x] = ++num;
+    ++cc[blocks];
+    belong[x] = blocks;
+    int cnt = 0;
+    for (int i = G.head[x]; i != -1; i = G.E[i].nxt) {
+        int to = G.E[i].to;
+        if (dfn[to] == 0) {
+            ++cnt;
+            Tarjan(to);
+            low[x] = min(low[x], low[to]);
+            if (x == root) {
+                if (cnt > 1) ++cv[x];
+            } else {
+                if (dfn[x] <= low[to]) ++cv[x];
+            }
+        } else {
+            low[x] = min(low[x], dfn[to]);
+        }
+    }
+}
+void solve() {
+    num = 0;
+    for (int i = 0; i <= n; ++i) {
+        dfn[i] = 0;
+        low[i] = 0;
+        cc[i] = cv[i] = 0;
+    }
+    blocks = 0;
+    for (int i = 1; i <= n; ++i) {
+        if (dfn[i] != 0) continue;
+        root = i;
+        ++blocks;
+        Tarjan(i);
+    }
+    for (int i = 1; i <= n; ++i) {
+        if (i > 1) printf(" ");
+        int ans = blocks + cv[i];
+        if (cc[belong[i]] == 1) --ans;
+        printf("%d", ans);
+    }
+    puts("");
 }
 \end{lstlisting}
 

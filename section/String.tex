@@ -65,7 +65,7 @@ const int maxn = 1e6 + 10;
 int nxt[maxn];
 char s1[maxn], s2[maxn];
 int len1, len2;
-void getNext(){
+void getNext() {
     int i = 0, j = -1;
     nxt[0] = -1;
     while(i < len2) {
@@ -73,11 +73,10 @@ void getNext(){
         else j = nxt[j];
     }
 }
-
 void kmp() {
     int i = 0, j = 0;
     getNext();
-    while(i < len1){
+    while(i < len1) {
         if(j == -1 || s1[i] == s2[j]) ++i, ++j;
         else j = nxt[j];
         // 匹配成功 s1[i - len2, i) = s2[0, len2)

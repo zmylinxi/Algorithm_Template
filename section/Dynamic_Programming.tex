@@ -729,8 +729,7 @@ void vir_tree (int cq) {
 }
 int main() {
     int n; scanf("%d", &n);
-    G.init(n);
-    VG.init(n);
+    G.init(n); VG.init(n);
     for (int i = 1; i < n; ++i) {
         int u, v; scanf("%d%d", &u, &v);
         G.add_edge(u, v);

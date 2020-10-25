@@ -8,4 +8,4 @@ node_modules
 *.out
 *.synctex.gz
 *.toc
-Algorithm_Template_*
+*.pdf
