@@ -170,8 +170,6 @@ namespace Solver {
 
 \subsection{归并排序求逆序对 $O(nlog(n))$ }
 
-
-
 \begin{lstlisting}[language=C++]
 // 下标，例如数组int a[5]，全部排序的调用为 mgst(0, 4)
 // a1为原数组，a2为临时数组
@@ -278,14 +276,13 @@ ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
 const int maxn = 1e6 + 5;
 const ll mod = 1e9 + 7;
 ll fac[maxn], inv_fac[maxn];
-ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
+ll pow_m(ll a, ll b, ll mod) { // 取模意义下的 a 的 b 次方
     ll r = 1, bs = a;
     while(b) {
         if(b & 1)
             r = r*bs%mod;
         bs = bs*bs%mod;
         b >>= 1;
-        b %= mod;
     }
     return r;
 }
@@ -296,7 +293,6 @@ void getFacInv(int n) { // n 为最大所需阶乘数
     inv_fac[n] = pow_m(fac[n], mod - 2, mod);
     for(int i = n-1; i >= 0; --i)
         inv_fac[i] = (inv_fac[i+1]*(i+1))%mod;
-    return ;
 }
 \end{lstlisting}
 
@@ -339,13 +335,17 @@ ll CRT(int n) {
 
 \subsubsection{EXCRT（不要求模数数组两两互质）}
 
+
+hdu 1573
+
+求在小于等于 $n$ 的正整数中有多少个 $X$ 满足：
+
+$X mod a_0 = b_0, X mod a_1 = b_1, ...... , X mod a_{m - 1} = b_{m - 1}$
+
+$(0 < n \le 1,000,000,000, 0 < m \le 10)$
+
 \begin{lstlisting}[language=C++]
-/*
- *   hdu 1573
- *   求在小于等于 n 的正整数中有多少个 X 满足：
- *   X mod a[0] = b[0], X mod a[1] = b[1], ...... , X mod a[m - 1] = b[m - 1]
- *   (0 < n <= 1,000,000,000, 0 < m <= 10)
-*/
+
 #include <bits/stdc++.h>
 using namespace std;
 typedef long long ll;
@@ -456,25 +456,27 @@ ll get_phi(ll x) {
 \subsubsection{线性筛}
 
 \begin{lstlisting}[language=C++]
-const int maxn = 1e7 + 5;
-bool isNotPrime[maxn];
-vector<int> prime;
-int miu[maxn];
-void getMiu(int n) {
-    isNotPrime[1] = true;
+const int MAXN = 1e6 + 5;
+int p[MAXN], miu[MAXN], tot;
+bool np[MAXN];
+void get_miu() {
+    np[1] = true;
     miu[1] = 1;
-    for(int i = 2; i <= n; i++) {
-        if(!isNotPrime[i]) {
-            prime.push_back(i);
+    for (int i = 2; i < MAXN; ++i) {
+        if (!np[i]) {
+            p[tot++] = i;
             miu[i] = -1;
         }
-        for(int j = 0; j < prime.size() && i*prime[j] <= n; ++j){
-            isNotPrime[i*prime[j]] = true;
-            if(i%prime[j] == 0) {
-                miu[i*prime[j]] = 0;
+        for (int j = 0; j < tot; ++j) {
+            int x = i*p[j];
+            if (x >= MAXN) break;
+            np[x] = true;
+            if (i%p[j] == 0) {
+                miu[x] = 0;
                 break;
+            } else {
+                miu[x] = -miu[i];
             }
-            miu[i*prime[j]] = -miu[i];
         }
     }
 }
@@ -483,21 +485,23 @@ void getMiu(int n) {
 \subsubsection{$O(\sqrt{x})$ 求单个莫比乌斯函数的值}
 
 \begin{lstlisting}[language=C++]
-int getMiu(ll n){
-    int v = 1;
-    for(ll i = 2; i*i <= n; ++i){
-        if(n%i == 0){
-            v = -v;
+int get_miu(ll n){
+    int ret = 1;
+    for (ll i = 2; i*i <= n; ++i) {
+        if (n%i == 0) {
+            ret = -ret;
             n /= i;
             if(n%i == 0) return 0;
         }
     }
-    if(n != 1) v = -v;
-    return v;
+    if (n != 1) ret = -ret;
+    return ret;
 }
 \end{lstlisting}
 
 \subsubsection{数论分块}
+
+二维数论分块
 
 对于给出的 n 个询问，每次求有多少个数对 $(x, y)$ ，满足 $a \le x \le b$ ， $c \le y \le d$ ，且 $gcd(x, y) = k$ ， $gcd(x, y)$ 函数为 x 和 y 的最大公约数。
 
@@ -554,7 +558,7 @@ int main() {
 
 已知 $a, b, Pa, b, P$，a 与 P 不一定互质
 
-求解同余方程 $ax ≡ b (mod P)$
+求解同余方程 $ax \eqs b (mod P)$
 
 \begin{lstlisting}[language=C++]
 class Hash {

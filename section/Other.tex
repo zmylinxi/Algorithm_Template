@@ -256,8 +256,12 @@ public class Main {
 \subsection{丢人}
 
 \begin{itemize}
-    \item 调用rand函数之前必须使用srand设置随机种子
-    \item 二分输出方案时, 最后要再judge一次正解
-    \item 对于负数 /2 向0取整, >> 向下取整
-    \item 二叉树(线段树,堆...)中注意儿子是<<, 父亲是>>
+    \item 调用 rand 函数之前必须使用 srand 设置随机种子
+    \item 二分输出方案时, 最后要再 judge 一次正解
+    \item 对于负数 /2 向 0 取整, >> 向下取整
+    \item 二叉树(线段树,堆...)中注意儿子是 <<, 父亲是 >>
+    \item 本地打表记得把优化开满
+    \item 手动加栈 #pragma comment(linker, "/STACK:1024000000, 1024000000")
+    \item 编译器 O3 优化 #pragma GCC optimize(3)
+    \item bool 函数如果不写返回值，默认返回 true !!!
 \end{itemize}

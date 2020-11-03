@@ -502,7 +502,7 @@ namespace SA {
 const int maxn = 1e6 + 5;
 const int MaxState = 2*maxn; // 至少开字符串长度的两倍
 const int SigmaSize = 26;
-template<class T> class SAM{
+template<class T> class SAM {
 private:
     int tot, lst, len;
     int trans[MaxState][SigmaSize], mx[MaxState], mi[MaxState], link[MaxState];

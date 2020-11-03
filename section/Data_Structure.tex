@@ -468,19 +468,19 @@ int main(){
 
 \begin{lstlisting}[language=C++]
 const int maxn = 1e5 + 5;
-struct node{
+struct node {
     int l, r;
     int sum;
 } T[maxn << 5];
 int a[maxn], cnt, root[maxn];
-void update(int l, int r, int& x, int y, int pos){
+void update(int l, int r, int &x, int y, int pos) {
     T[++cnt] = T[y]; ++T[cnt].sum; x = cnt;
     if(l == r) return ;
     int mid = (l + r) >> 1;
     if(mid >= pos) update(l, mid, T[x].l, T[y].l, pos);
     else update(mid + 1, r, T[x].r, T[y].r, pos);
 }
-int query(int l, int r, int x, int y, int k){
+int query(int l, int r, int x, int y, int k) {
     if(l == r) return l;
     int mid = (l + r) >> 1;
     int sum = T[T[y].l].sum - T[T[x].l].sum;
@@ -495,12 +495,12 @@ int query(int l, int r, int x, int y, int k){
 int trie[400001][26];
 int tot, sum[400001];
 char s[11];
-void ist(){
+void ist() {
     int ls = strlen(s);
     int root = 0;
-    for(int i = 0; i < ls; ++i){
+    for(int i = 0; i < ls; ++i) {
         int id = s[i] - 'a';
-        if(!trie[root][id]){
+        if(!trie[root][id]) {
             ++tot;
             trie[root][id] = tot;
         }
@@ -509,14 +509,12 @@ void ist(){
     }
     return ;
 }
-
-int src(){
+int src() {
     int root = 0;
     int ls = strlen(s);
-    for(int i = 0; i < ls; ++i){
+    for(int i = 0; i < ls; ++i) {
         int id = s[i] - 'a';
-        if(!trie[root][id])
-            return 0;
+        if(!trie[root][id]) return 0;
         root = trie[root][id];
     }
     return sum[root];
@@ -644,9 +642,9 @@ struct Query {
         }
         return pos[l] < pos[q.l];
     }
-}Q[maxn];
+} Q[maxn];
 
-void init(){
+void init() {
     int t = sqrt(n);
     for(int i = 1; i <= t; ++i){
         L[i] = (i - 1)*t + 1;
@@ -660,11 +658,11 @@ void init(){
     for(int i = 1; i <= t; ++i) for(int j = L[i]; j <= R[i]; ++j) pos[j] = i;
 }
 
-void del(int x){
+void del(int x) {
     if(--cnt[num[x]] == 0) A -= num[x];
 }
 
-void add(int x){
+void add(int x) {
     if(++cnt[num[x]] == 1) A += num[x];
 }
 void Mo() {
@@ -702,7 +700,7 @@ int main(){
 }
 \end{lstlisting}
 
-\subsubsection{待修改莫队}
+\subsubsection{带修改莫队}
 
 块大小为 $(nt) ^ \frac{1}{3}$ 可以达到最快的理论复杂度 $O((n ^ 4 t) ^ \frac{1}{3})$ $n$ 为数组大小，$t$ 为修改次数
 
