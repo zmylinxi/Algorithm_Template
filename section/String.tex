@@ -354,17 +354,18 @@ void getSeqAM() {
 
 \begin{lstlisting}[language=C++]
 typedef unsigned long long ull; // %llu
-const ull key = 137; // 233 769
-const ull mod = 998244353; // 1000000007
-ull H[maxn], xp[maxn];
-void Init_Hash(char *s){
-    int n = strlen(s + 1);
-    H[0] = 0; xp[0] = 1;
-    for(int i = 1; i <= n; ++i) H[i] = H[i - 1]*key + (s[i] - 'a');
-    for(int i = 1; i <= n; ++i) xp[i] = xp[i - 1]*key;
+const int MAXN = 1e5 + 5;
+constexpr ull KEY = 233; // 137 233 769
+ull h[MAXN], xp[MAXN];
+void init_hash(char s[], int len) { // s[1, len]
+    h[0] = 0; xp[0] = 1;
+    for (int i = 1; i <= len; ++i) {
+        h[i] = h[i - 1]*KEY + (s[i] - 'a');
+        xp[i] = xp[i - 1]*KEY;
+    }
 }
-ull Hash(int l, int r){
-    return H[r] - H[l - 1] * xp[r - l + 1];
+ull get_hash(int lf, int rt) {
+    return h[rt] - h[lf - 1]*xp[rt - lf + 1];
 }
 \end{lstlisting}
 
@@ -372,7 +373,7 @@ ull Hash(int l, int r){
 
 给你一个 $n$ 位数，每一位可以有 $m _ i$ 种选择。
 
-给定一个需要匹配的母串，让你输出母串中有多少个可行的 $n$ 位子串。
+给定一个需要匹配的母串，让你输出母串中所有可行的 $n$ 位子串。
 
 \begin{lstlisting}[language=C++]
 bitset<1005> b[10], ans;
@@ -581,9 +582,7 @@ private:
         puts("");
     }
 public:
-    SAM() {
-        tot = 0;
-    }
+    SAM() { tot = 0; }
     int id[maxn]; // always need
     void solve(int n, T a[]) {
         len = n;
@@ -726,14 +725,10 @@ T 为 0 则表示不同位置的相同子串算作一个。T 为 1 则表示不�
 ll cnt[MaxState], sum[MaxState];
 void dfs(int p, int k) {
     k -= cnt[p];
-    if(k <= 0) {
-        return ;
-    }
+    if(k <= 0) return ;
     for(int i = 0; i < SigmaSize; ++i) {
         int to = trans[p][i];
-        if(to == -1) {
-            continue;
-        }
+        if(to == -1) continue;
         if(sum[to] >= k) {
             printf("%c", 'a' + i);
             dfs(to, k);
@@ -753,13 +748,9 @@ void solve(int n, T a[]) {
     getTopo();
     // show();
     int t, k; scanf("%d%d", &t, &k);
-    for(int i = 0; i < tot; ++i) {
-        cnt[i] = 0;
-    }
+    for(int i = 0; i < tot; ++i) cnt[i] = 0;
     if(t == 0) {
-        for(int i = 0; i < tot; ++i) {
-            cnt[i] = 1;
-        }
+        for(int i = 0; i < tot; ++i) cnt[i] = 1;
     } else {
         int p = 0;
         for(int i = 0; i < len; ++i) {
@@ -773,23 +764,16 @@ void solve(int n, T a[]) {
         }
     }
     cnt[0] = 0;
-    for(int i = 0; i < tot; ++i) {
-        sum[i] = cnt[i];
-    }
+    for(int i = 0; i < tot; ++i) sum[i] = cnt[i];
     for(int i = tot - 1; i >= 0; --i) {
         int x = topo[i];
         for(int j = 0; j < SigmaSize; ++j) {
             int to = trans[x][j];
-            if(to != -1) {
-                sum[x] += sum[to];
-            }
+            if(to != -1) sum[x] += sum[to];
         }
     }
-    if(sum[0] < k) {
-        printf("-1");
-    } else {
-        dfs(0, k);
-    }
+    if(sum[0] < k) printf("-1");
+    else dfs(0, k);
     puts("");
 }
 \end{lstlisting}
@@ -811,15 +795,11 @@ void solve(int n, T a[]) {
     // 此行以下根据题目要求进行修改
     getTopo();
     // show();
-    for(int i = 0; i < tot; ++i) {
-        ans[i] = mx[i];
-    }
+    for(int i = 0; i < tot; ++i) ans[i] = mx[i];
     while(scanf("%s", t) != EOF) {
         // if(t[0] == 'Q') break;
         int lt = strlen(t);
-        for(int i = 0; i < tot; ++i) {
-            num[i] = 0;
-        }
+        for(int i = 0; i < tot; ++i) num[i] = 0;
         int p = 0, now = 0;
         for(int i = 0; i < lt; ++i) {
             int cid = getId(t[i]);

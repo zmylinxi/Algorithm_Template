@@ -1,23 +1,54 @@
 
 
 \section{数论}
-\subsection{素数筛}
+
+\subsection{素数相关}
+
+\subsubsection{素数密度}
+
+当 $x \to \infty$ 时， $\pi (x) \to \frac{x}{ln(x)}$
+
+\subsubsection{长度为 i 的素数个数 }
+
+\begin{lstlisting}[language=C++]
+cnt[1] = 4      cnt[2] = 21      cnt[3] = 143
+cnt[4] = 1061   cnt[5] = 8363    cnt[6] = 68906
+cnt[7] = 586081
+\end{lstlisting}
+
+\subsubsection{1000 以内的素数表}
+
+\begin{lstlisting}[language=C++]
+  2   3   5   7  11  13  17  19  23  29  31  37  41  43  47
+ 53  59  61  67  71  73  79  83  89  97 101 103 107 109 113
+127 131 137 139 149 151 157 163 167 173 179 181 191 193 197
+199 211 223 227 229 233 239 241 251 257 263 269 271 277 281
+283 293 307 311 313 317 331 337 347 349 353 359 367 373 379
+383 389 397 401 409 419 421 431 433 439 443 449 457 461 463
+467 479 487 491 499 503 509 521 523 541 547 557 563 569 571
+577 587 593 599 601 607 613 617 619 631 641 643 647 653 659
+661 673 677 683 691 701 709 719 727 733 739 743 751 757 761
+769 773 787 797 809 811 821 823 827 829 839 853 857 859 863
+877 881 883 887 907 911 919 929 937 941 947 953 967 971 977
+983 991 997
+\end{lstlisting}
+
+1e7 以内的素数一共有 664579 （不到 7e5 ）个
+
 \subsubsection{线性筛}
 
 \begin{lstlisting}[language=C++]
-const int maxn = 1e7 + 5;
-const int maxp = 1e6 + 5;
-// 1e7 以内的素数一共有 664579 （不到 7e5 ）个
-int p[maxp], tot;
-bool np[maxn];
-void getPrime(int n) {
+const int MAXN = 1e7 + 5;
+int p[MAXN], tot;
+bool np[MAXN];
+void get_prime() {
     tot = 0;
-    for(int i = 0; i <= n; ++i) np[i] = false;
-    for(int i = 2; i <= n; ++i) {
+    for(int i = 0; i < MAXN; ++i) np[i] = false;
+    for(int i = 2; i < MAXN; ++i) {
         if(!np[i]) p[tot++] = i;
         for(int j = 0; j < tot; ++j) {
             int x = i*p[j];
-            if(x > n) break;
+            if(x >= MAXN) break;
             np[x] = true;
             if(i%p[j] == 0) break;
         }
@@ -86,9 +117,6 @@ void SegmentSieve(ll a, ll b){
 }
 \end{lstlisting}
 
-
-
-
 \subsubsection{Meisell-Lehmer ($O(n ^ {\frac{2}{3}})$ 求 $[1,  n]$ 素数的个数)}
 
 \begin{lstlisting}[language=C++]
@@ -133,9 +161,9 @@ namespace Solver {
         return int(r - 1);
     }
     ll getphi(ll x, int s) {
-        if(s == 0)  return x;
-        if(s <= M)  return phi[x % sz[s]][s] + (x / sz[s]) * phi[sz[s]][s];
-        if(x <= prime[s]*prime[s])   return pi[x] - s + 1;
+        if(s == 0) return x;
+        if(s <= M) return phi[x % sz[s]][s] + (x / sz[s]) * phi[sz[s]][s];
+        if(x <= prime[s]*prime[s]) return pi[x] - s + 1;
         if(x <= prime[s]*prime[s]*prime[s] && x < N) {
             int s2x = pi[sqrt2(x)];
             ll ans = pi[x] - (s2x + s - 2) * (s2x - s + 1) / 2;
@@ -221,7 +249,7 @@ ll ExGcd(ll a, ll b, ll &x, ll &y) {
 }
 \end{lstlisting}
 
-\subsubsection{EXGCD求逆元}
+\subsubsection{EXGCD 求逆元}
 
 \begin{lstlisting}[language=C++]
 // ax = 1(% mod)
@@ -233,7 +261,7 @@ ll mod_reverse(ll a, ll mod){ // 不要求mod为素数
 }
 \end{lstlisting}
 
-\subsubsection{浮点数GCD}
+\subsubsection{浮点数 GCD}
 
 \begin{lstlisting}[language=C++]
 int sgn(double x){
@@ -250,22 +278,6 @@ double fgcd(double a, double b){
 
 \subsection{逆元}
 
-\subsubsection{取模意义下快速幂 $O(log(n))$}
-
-\begin{lstlisting}[language=C++]
-ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
-    ll r = 1, bs = a;
-    while(b) {
-        if(b & 1)
-            r = r*bs%mod;
-        bs = bs*bs%mod;
-        b >>= 1;
-        b %= mod;
-    }
-    return r;
-}
-\end{lstlisting}
-
 \subsubsection{费马小定理}
 
 当模数为素数时，在模 $mod$ 意义下， $inv(a) = a^{-1} = a^{mod - 2}$
@@ -276,23 +288,22 @@ ll pow_m(ll a, ll b, ll mod) { //取模意义下的 a 的 b 次方
 const int maxn = 1e6 + 5;
 const ll mod = 1e9 + 7;
 ll fac[maxn], inv_fac[maxn];
-ll pow_m(ll a, ll b, ll mod) { // 取模意义下的 a 的 b 次方
+ll pow_m(ll a, ll b, ll mod) {
     ll r = 1, bs = a;
     while(b) {
-        if(b & 1)
-            r = r*bs%mod;
+        if(b & 1) r = r*bs%mod;
         bs = bs*bs%mod;
         b >>= 1;
     }
     return r;
 }
-void getFacInv(int n) { // n 为最大所需阶乘数
+void getFacInv(int n) {
     fac[0] = 1;
     for(int i = 1; i <= n; ++i)
-        fac[i] = (fac[i-1]*i)%mod;
+        fac[i] = (fac[i - 1]*i)%mod;
     inv_fac[n] = pow_m(fac[n], mod - 2, mod);
     for(int i = n-1; i >= 0; --i)
-        inv_fac[i] = (inv_fac[i+1]*(i+1))%mod;
+        inv_fac[i] = (inv_fac[i + 1]*(i + 1))%mod;
 }
 \end{lstlisting}
 
@@ -334,7 +345,6 @@ ll CRT(int n) {
 \end{lstlisting}
 
 \subsubsection{EXCRT（不要求模数数组两两互质）}
-
 
 hdu 1573
 
@@ -442,8 +452,47 @@ ll get_phi(ll x) {
 }
 \end{lstlisting}
 
-\subsection{莫比乌斯函数}
+\subsubsection{欧拉降幂公式}
 
+欧拉定理：若正整数 $a, n$ 互质，则 $a^{Euler(n)} ≡ 1 (mod \space n)$
+
+推论：若正整数 $a, n$ 互质，则对于任意正整数 $b$, 有 $a^b ≡ a^{b\%Euler(n)}(mod \space n)$
+
+对于 $p$ 是素数，$Euler(p) = p - 1$ 且只有 $p$ 的倍数与 $p$ 不互质
+
+\begin{lstlisting}[language=C++]
+#define Mod(a, b) (a < b ? a : a%b + b)
+unordered_map<ll, ll> p;
+ll Pow(ll x, ll y, ll mod){
+    ll ret = 1;
+    while(y){
+        if(y & 1) ret = Mod(ret*x, mod);
+        x = Mod(x*x, mod);
+        y >>= 1;
+    }
+    return ret;
+}
+ll phi(ll k){
+    ll s = k, x = k;
+    if(p[k] != 0) return p[k];
+    for(ll i = 2; i*i <= k; ++i){
+        if(k%i == 0) s = s/i*(i - 1);
+        while(k%i == 0) k /= i;
+    }
+    if(k > 1) s = s/k*(k - 1);
+    p[x] = s;
+    return s;
+}
+ll a[maxn];
+// return a[lf] ^ a[lf + 1] ^  ... ^ a[rt]
+// 注意返回值需要再 % mod ，因为 Mod 被重载为欧拉降幂的形式
+ll solve(int lf, int rt, ll mod){
+    if(lf == rt || mod == 1) return Mod(a[lf], mod);
+    return Pow(a[lf], solve(lf + 1, rt, phi(mod)), mod);
+}
+\end{lstlisting}
+
+\subsection{莫比乌斯函数}
 
 如果一个数包含平方因子，那么 miu(n) = 0。
 
@@ -498,6 +547,26 @@ int get_miu(ll n){
     return ret;
 }
 \end{lstlisting}
+
+\subsubsection{莫比乌斯反演}
+
+定理：
+
+$F(n)$ 和 $f(n)$ 是定义在非负整数集合上的两个函数，并且满足条件：
+
+$$F(n) = \sigma_{d | n} f(d)$$
+
+那么存在一个结论：
+
+$$f(n) = \simga_{d | n} \mu (d) F(\frac{n}{d})$$
+
+另外一种形式：
+
+$$F(d) = \sigma_{d | n} f(n)$$
+
+可以推出：
+
+$$f(d) = \simga_{d | n} \mu (\frac{n}{d}) F(n)$$
 
 \subsubsection{数论分块}
 
@@ -639,46 +708,6 @@ ll ExBSGS(ll A, ll B, ll C) {
 }
 \end{lstlisting}
 
-\subsection{欧拉降幂公式}
-
-欧拉定理：若正整数 $a, n$ 互质，则 $a^{Euler(n)} ≡ 1 (mod \space n)$
-
-推论：若正整数 $a, n$ 互质，则对于任意正整数 $b$, 有 $a^b ≡ a^{b\%Euler(n)}(mod \space n)$
-
-对于 $p$ 是素数，$Euler(p) = p - 1$ 且只有 $p$ 的倍数与 $p$ 不互质
-
-\begin{lstlisting}[language=C++]
-#define Mod(a, b) (a < b ? a : a%b + b)
-unordered_map<ll, ll> p;
-ll Pow(ll x, ll y, ll mod){
-    ll ret = 1;
-    while(y){
-        if(y & 1) ret = Mod(ret*x, mod);
-        x = Mod(x*x, mod);
-        y >>= 1;
-    }
-    return ret;
-}
-ll phi(ll k){
-    ll s = k, x = k;
-    if(p[k] != 0) return p[k];
-    for(ll i = 2; i*i <= k; ++i){
-        if(k%i == 0) s = s/i*(i - 1);
-        while(k%i == 0) k /= i;
-    }
-    if(k > 1) s = s/k*(k - 1);
-    p[x] = s;
-    return s;
-}
-ll a[maxn];
-// return a[lf] ^ a[lf + 1] ^  ... ^ a[rt]
-// 注意返回值需要再 % mod ，因为 Mod 被重载为欧拉降幂的形式
-ll solve(int lf, int rt, ll mod){
-    if(lf == rt || mod == 1) return Mod(a[lf], mod);
-    return Pow(a[lf], solve(lf + 1, rt, phi(mod)), mod);
-}
-\end{lstlisting}
-
 \subsection{因子相关}
 
 \subsubsection{因子个数}
@@ -737,7 +766,7 @@ ll solve(int n){
 }
 \end{lstlisting}
 
-\subsection{MIN25筛}
+\subsection{MIN25 筛}
 
 \begin{lstlisting}[language=C++]
 namespace MIN25 {
@@ -747,17 +776,14 @@ namespace MIN25 {
     int getid(ll x, ll n) {
         return x <= Sqr ? x : m - n / x + 1;
     }
-
     int S(ll n) {
         if (n & 1)
             return (n + 1) / 2 % MOD * (n % MOD) % MOD;
         return n / 2 % MOD * ((n + 1) % MOD) % MOD;
     }
-
     int f(int n, int c) {
         return (n ^ c) % MOD;
     }
-
     void pre(ll n) {
         Sqr = sqrt(n), m = 0;
         for (ll l = 1, r; l <= n; l = r + 1) {
@@ -782,7 +808,6 @@ namespace MIN25 {
             s1[i] = (s2[i] - s1[i] + (i > 1) * 2) % MOD;
         }
     }
-
     ll sieve(ll n, int y) {
         if (n <= 1 || p[y] > n)
             return 0;

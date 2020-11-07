@@ -49,32 +49,34 @@ ll Lucas(ll a, ll b){
 
 \subsection{康托展开与逆康托展开（全排列到自然数的双射）}
 
+返回值为有多少个排列字典序比当前排列的字典序小
+
 \begin{lstlisting}[language=C++]
 int a[12], fac[12];
 bool vis[12];
-void getfac(int n){
+void getfac(int n) {
     fac[0] = 1;
-    for(int i = 1; i < n; ++i) fac[i] = fac[i - 1]*i;
+    for (int i = 1; i < n; ++i) fac[i] = fac[i - 1]*i;
 }
-int cantor(int n){
+int cantor(int n) {
     int ret = 0;
-    for(int i = 0; i < n; ++i){
+    for (int i = 1; i <= n; ++i) {
         int cnt = 0;
-        for(int j = i + 1; j < n; ++j) if(a[i] > a[j]) ++cnt;
-        ret += cnt*fac[n - 1 - i];
+        for (int j = i + 1; j <= n; ++j) if(a[i] > a[j]) ++cnt;
+        ret += cnt*fac[n - i];
     }
     return ret;
 }
-void decantor(int x, int n){
-    for(int i = 1; i <= n; ++i) vis[i] = false;
+void decantor(int x, int n) {
+    for (int i = 1; i <= n; ++i) vis[i] = false;
     int tot = 0;
-    for(int i = n; i >= 1; --i){
+    for (int i = n; i >= 1; --i) {
         int q = x/fac[i - 1];
         int cnt = 0;
-        for(int j = 1; j <= n; ++j){
-            if(vis[j]) continue;
-            if(++cnt > q){
-                a[tot++] = j;
+        for (int j = 1; j <= n; ++j) {
+            if (vis[j]) continue;
+            if (++cnt > q) {
+                a[++tot] = j;
                 vis[j] = true;
                 break;
             }

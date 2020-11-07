@@ -242,6 +242,27 @@ public class Main {
 }
 \end{lstlisting}
 
+\subsection{素数表}
+
+\begin{lstlisting}[language=java]
+import java.util.*;
+import java.math.BigInteger;
+public class Main {
+    public static void main(String[] args) {
+        Scanner cin = new Scanner(System.in);
+        BigInteger n = cin.nextBigInteger();
+        int len = n.toString().length()/2;
+        BigInteger x0 = new BigInteger(n.toString().substring(len));
+        while(true) {
+            BigInteger x1 = x0.multiply(x0).add(n).divide(BigInteger.valueOf(2).multiply(x0));
+            if(x1.compareTo(x0) == 0) break;
+            x0 = x1;
+        }
+        System.out.println(x0);
+        cin.close();
+    }
+}
+\end{lstlisting}
 
 \subsection{一些奇奇怪怪的性质}
 
@@ -251,6 +272,7 @@ public class Main {
     \item 字典序最小的拓扑序：拓扑排序 + 优先队列
     \item 最小值最早出现（次小值在最小值最早出现的前提下最早出现......）的拓扑序：反向建图，跑出字典序最大的拓扑排序，倒序输出
     \item 随机边权的图，最短路径上的边数很少，生成树不唯一的概率为 0
+    \item 所有本原勾股三元组可以表示为 $(i^2 - j^2, 2ij, i^2 + j^2)$，其中 $gcd(i, j) = 1$，并且不能同时为奇数
 \end{itemize}
 
 \subsection{丢人}

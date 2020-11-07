@@ -2656,3 +2656,162 @@ public:
 };
 Hash<int, int> H;
 \end{lstlisting}
+
+\subsection{Top Tree}
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 50005;
+int n, m, etot;
+
+struct node {
+	node *ch[2], *fa, *c, *p, *s, *u, *v;
+	bool rev, type;
+	int size, dl, dr, mx;
+
+	void pushup() {
+		if (!type) {
+			size = 1, dl = dr = 0;
+			if (ch[0]) size += ch[0]->size, dl = ch[0]->dl;
+			if (ch[1]) size += ch[1]->size, dr = ch[1]->dr;
+			dl = max(dl, (ch[0] ? ch[0]->size : 0) + max(c ? 1 + c->mx : 0, (ch[1] ? 1 + ch[1]->dl : 0)));
+			dr = max(dr, (ch[1] ? ch[1]->size : 0) + max(c ? 1 + c->mx : 0, (ch[0] ? 1 + ch[0]->dr : 0)));
+		} else {
+			mx = c ? c->dl : -N;
+			if (ch[0]) mx = max(mx, ch[0]->mx);
+			if (ch[1]) mx = max(mx, ch[1]->mx);
+		}
+	}
+	void pushdown() {
+		if (rev) {
+			if (ch[0]) ch[0]->reverse();
+			if (ch[1]) ch[1]->reverse();
+			rev = 0;
+		}
+	}
+	void reverse() {
+		rev ^= 1, swap(ch[0], ch[1]), swap(dl, dr), swap(p, s);
+	}
+	bool is_root() {
+		return !fa || (fa->ch[0] != this && fa->ch[1] != this);
+	}
+} vertex[N], edge[2 * (N + N)];
+
+node *rev(node *e) {
+	return edge + (e - edge ^ 1);
+}
+
+void rotate(node *x) {
+	auto y = x->fa, z = y->fa; bool d = y->ch[1] == x;
+	if (!y->is_root()) z->ch[z->ch[1] == y] = x;
+	if (y->ch[d] = x->ch[!d]) y->ch[d]->fa = y;
+	(x->ch[!d] = y)->fa = x; x->fa = z;
+	y->pushup();
+}
+void splay(node *x, node *goal = nullptr) {
+	static node *st[N]; int top = 0; st[++top] = x;
+	for (auto i = x; !i->is_root(); i = i->fa) st[++top] = i->fa;
+	for (int i = top; i; --i) st[i]->pushdown();
+	for (node *y; (y = x->fa) != goal && !x->is_root(); rotate(x))
+		if (y->fa != goal && !y->is_root()) rotate((y->ch[1] == x) != (y->fa->ch[1] == y) ? x : y);
+	x->pushup();
+}
+void access(node *x) {
+	for (node *y = nullptr;;) {
+		splay(x);
+		if (x->ch[1]) splay(x->s), x->c = x->s, x->s->c = x->ch[1], x->ch[1]->fa = x->s, x->s->pushup();
+		node *t = nullptr;
+		if (y) t = y->fa, splay(t), x->c = t, t->c = nullptr, t->pushup(), y->fa = x;
+		x->s = t, x->ch[1] = y, x->pushup();
+		if (!x->fa) break;
+		y = x, x = x->fa->u;
+	}
+}
+void insert(node *&x, node *y) {
+	y->ch[1] = y->fa = y->c = nullptr;
+	if (y->ch[0] = x) x->fa = y;
+	(x = y)->pushup();
+}
+void erase_root(node* &x) {
+	if (!x->ch[0]) {
+		auto y = x->ch[1];
+		if (y) y->fa = nullptr;
+		x = y;
+		return;
+	}
+	auto y = x->ch[0];
+	while (y->ch[1]) y = y->ch[1];
+	splay(y, x);
+	if (y->ch[1] = x->ch[1]) x->ch[1]->fa = y;
+	y->fa = nullptr;
+	(x = y)->pushup();
+}
+
+void evert(node *x) {
+	access(x), splay(x), x->reverse();
+}
+void link(node *e) {
+	evert(e->v), access(e->u), splay(e->u);
+	e->v->pushdown();
+	e->u->s = e, insert(e->u->c, e);
+	e->v->p = rev(e), insert(e->v->c, rev(e));
+	(e->u->ch[1] = e->v)->fa = e->u;
+	e->v->pushup(), e->u->pushup();
+}
+void cut(node *e) {
+	evert(e->u), access(e->v), splay(e->v);
+	splay(e), e->u->c = e, erase_root(e->u->c);
+	splay(rev(e)), e->v->c = rev(e), erase_root(e->v->c);
+	e->u->s = e->v->p = nullptr;
+	e->v->ch[0] = e->u->fa = nullptr;
+	e->v->pushup(), e->u->pushup();
+}
+
+node *find_kth(node *x, int k) {
+	for (;;) {
+		x->pushdown();
+		int sz = x->ch[0] ? x->ch[0]->size : 0;
+		if (k <= sz) x = x->ch[0];
+		else if (k == sz + 1) {
+			splay(x);
+			return x;
+		} else k -= sz + 1, x = x->ch[1];
+	}
+}
+int calc(node *x, node *y) {
+	evert(x), access(y), splay(y);
+	auto e = find_kth(y, y->size / 2)->s;
+	cut(e);
+	evert(x), evert(y);
+	int ans = max(x->dl, y->dl);
+	link(e);
+	return ans;
+}
+
+int main() {
+	scanf("%d", &n);
+	for (int i = 1; i <= n; ++i) vertex[i].size = 1;
+	for (int i = 1, a, b; i < n; ++i) {
+		scanf("%d%d", &a, &b);
+		edge[etot].type = 1, edge[etot].u = vertex + a, edge[etot].v = vertex + b, ++etot;
+		edge[etot].type = 1, edge[etot].u = vertex + b, edge[etot].v = vertex + a, ++etot;
+		link(edge + etot - 1);
+	}
+	scanf("%d", &m);
+	for (int a, b; m--;) {
+		char op;
+		scanf(" %c%d%d", &op, &a, &b);
+		if (op == 'L') {
+			evert(vertex + b), splay(vertex + a);
+			cut(vertex[a].p);
+			edge[etot].type = 1, edge[etot].u = vertex + a, edge[etot].v = vertex + b, ++etot;
+			edge[etot].type = 1, edge[etot].u = vertex + b, edge[etot].v = vertex + a, ++etot;
+			link(edge + etot - 1);
+		} else
+			printf("%d\n", calc(vertex + a, vertex + b));
+	}
+	return 0;
+}
+\end{lstlisting}

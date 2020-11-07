@@ -287,17 +287,26 @@ int main() {
 
 求解下列线性方程组：
 
-a[0][0]*x0 + a[0][1]*x1 + ... + a[0][n - 1]*x{n - 1} == a[0][n]
-...
-...
-a[n - 1][0]*x0 + a[n - 1][1]*x1 + ... + a[n - 1][n - 1]*x{n - 1} == a[n - 1][n]
+$$
+\begin{cases}
+    a_{00}*x_0 + a_{01}*x_1 + ... + a_{0(n - 1)}*x_{(n - 1)} = a_{0n}\\ 
+    \cdots \\
+    \cdots \\
+    a_{(n - 1)0}*x_0 + a_{(n - 1)1}*x_1 + ... + a_{(n - 1)(n - 1)}*x_{(n - 1)} = a_{0n}
+\end{cases} 
+$$
+
 
 最终结果为：
 
-x0 = a[0][n]
-...
-...
-x{n - 1} = a[n - 1][n]
+$$
+\begin{cases}
+    x_0 = a_{0n}\\ 
+    \cdots \\
+    \cdots \\
+    x_{(n - 1)} = a_{0n}
+\end{cases} 
+$$
 
 若无解，则返回 false
 
@@ -389,14 +398,85 @@ struct Linear_Basis {
 } LB;
 \end{lstlisting}
 
+\subsection{拉格朗日插值（$O(n^2)$ 求解 n 次多项式任意项）}
+
+\begin{lstlisting}[language=C++]
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const ll MOD = 1e9 + 7;
+ll pw(ll a, ll b, ll c){
+    ll ret = 1;
+    while (b > 0){
+        if ((b & 1) == 1) ret = ret*a%c;
+        a = a*a%c;
+        b >>= 1;
+    }
+    return ret;
+}
+ll inv(ll x){
+    return pw(x, MOD - 2, MOD);
+}
+struct Lagrange {
+    vector<ll> vx, vy, vl;
+    void init() {
+        vx.clear(); vy.clear();
+        vl.clear();
+    }
+    void add(ll x, ll y) {
+        vx.push_back(x);
+        vy.push_back(y);
+    }
+    ll get_val(ll x) {
+        int sz = vx.size();
+        vl.reserve(sz);
+        for (int i = 0; i < sz; ++i) {
+            ll up = 1, down = 1;
+            for (int j = 0; j < sz; ++j) {
+                if (j != i) {
+                    up = up*(x - vx[j])%MOD;
+                    down = down*(vx[i] - vx[j])%MOD;
+                }
+            }  
+            if (up < 0) up += MOD;
+            if (down < 0) down += MOD;
+            vl[i] = up*inv(down)%MOD;
+        }
+        ll ret = 0;
+        for (int i = 0; i < sz; ++i) ret = (ret + vl[i]*vy[i])%MOD;
+        return ret;
+    }
+    
+} lag;
+int main() {
+    lag.init();
+    lag.add(1, 1);
+    lag.add(2, 5);
+    lag.add(3, 15);
+    lag.add(4, 35);
+    lag.add(5, 70);
+    lag.add(6, 126);
+    lag.add(7, 210);
+
+    ll x;
+    while (scanf("%lld", &x) != EOF) {
+        printf("%lld\n", lag.get_val(x));
+    }
+    return 0;  
+}
+\end{lstlisting}
+
 \subsection{线性规划问题（单纯形法）}
 
 例题 bzoj 3112: [Zjoi2013] 防守战线
 
-战线可以看作一个长度为 n 的序列，现在需要在这个序列上建塔来防守敌
-兵，在序列第 i 号位置上建一座塔有 Ci 的花费，且一个位置可以建任意多的塔
-费用累加计算。有 m个区间[L1, R1], [L2, R2], …, [Lm, Rm]，在第 i 个区间
-的范围内要建至少 Di 座塔。求最少花费。
+战线可以看作一个长度为 $n$ 的序列，现在需要在这个序列上建塔来防守敌兵，
+
+在序列第 $i$ 号位置上建一座塔有 $C_i$ 的花费，且一个位置可以建任意多的塔费用累加计算。
+
+有 $m$ 个区间 $[L_1, R_1], [L_2, R_2], \cdots , [L_m, R_m]$，在第 i 个区间的范围内要建至少 $D_i$ 座塔。
+
+求最少花费。
 
 对其对偶问题使用单纯形法
 
