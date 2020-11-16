@@ -196,41 +196,6 @@ namespace Solver {
 }
 \end{lstlisting}
 
-\subsection{归并排序求逆序对 $O(nlog(n))$ }
-
-\begin{lstlisting}[language=C++]
-// 下标，例如数组int a[5]，全部排序的调用为 mgst(0, 4)
-// a1为原数组，a2为临时数组
-int a1[maxn], a2[maxn];
-ll mg(int lf, int mid, int rt){
-    int i = lf, j = mid + 1, k = lf;
-    ll ret = 0;
-    while(i <= mid && j <= rt){
-        if(a1[i] <= a1[j]) {
-            a2[k++] = a1[i++];
-        } else{
-            a2[k++] = a1[j++];
-            ret += (ll)j - k;
-        }
-    }
-    while(i <= mid) a2[k++] = a1[i++];
-    while(j <= rt) a2[k++] = a1[j++];
-    for(int i = lf; i <= rt; ++i) a1[i] = a2[i];
-    return ret;
-}
-
-ll mgst(int lf, int rt){
-    ll ret = 0;
-    if(lf < rt){
-        int mid = (lf + rt)/2;
-        ret += mgst(lf, mid);
-        ret += mgst(mid + 1, rt);
-        ret += mg(lf, mid, rt);
-    }
-    return ret;
-}        
-\end{lstlisting}
-
 \subsection{GCD及其应用}
 
 \subsubsection{拓展GCD}
@@ -320,7 +285,7 @@ void GetInv(int p) {
 }
 \end{lstlisting}
 
-\subsection{中国剩余定理 CRT}
+\subsection{中国剩余定理 CRT （同余方程组的求解）}
 
 \subsubsection{CRT（要求模数数组两两互质）}
 
@@ -558,7 +523,7 @@ $$F(n) = \sigma_{d | n} f(d)$$
 
 那么存在一个结论：
 
-$$f(n) = \simga_{d | n} \mu (d) F(\frac{n}{d})$$
+$$f(n) = \sigma_{d | n} \mu (d) F(\frac{n}{d})$$
 
 另外一种形式：
 
@@ -566,7 +531,7 @@ $$F(d) = \sigma_{d | n} f(n)$$
 
 可以推出：
 
-$$f(d) = \simga_{d | n} \mu (\frac{n}{d}) F(n)$$
+$$f(d) = \sigma_{d | n} \mu (\frac{n}{d}) F(n)$$
 
 \subsubsection{数论分块}
 
@@ -819,5 +784,50 @@ namespace MIN25 {
         }
         return ans % MOD;
     }
+}
+\end{lstlisting}
+
+
+\subsection{原根}
+
+设 m 是正整数，a 是整数，若 a 模 m 的阶等于 $\phi (m)$，则称 a 为模 m 的一个原根。（其中 $\phi (m)$ 表示 m 的欧拉函数）
+
+当模数为素数 p 时，g 为 p 的原根 当且仅当, 对于 p - 1 的所有质因子 $p _ i$ 都满足 $g ^ {\frac{p - 1}{p _ i}} \% p != 1$
+
+\begin{lstlisting}[language=C++]
+ll fac[MAXN];
+int tot;
+void get_fac(ll x) {
+    ll sx = sqrt(x);
+    tot = 0;
+    for (ll i = 2; i <= sx; ++i) {
+        if (x%i == 0) {
+            fac[tot++] = i;
+            while (x%i == 0) x /= i;
+        }
+    }
+    if (x > 1) fac[tot++] = x;
+}
+ll pw(ll a, ll b, ll c) {
+    ll ret = 1LL;
+    while (b > 0) {
+        if ((b & 1) == 1) ret = ret*a%c;
+        a = a*a%c;
+        b >>= 1;
+    }
+    return ret;
+}
+bool judge(ll g, ll p) {
+    for (int i = 0; i < tot; ++i) {
+        if (pw(g, (p - 1)/fac[i], p) == 1) return false;
+    }
+    return true;
+}
+ll get_root(ll p) {
+    get_fac(p - 1LL);
+    for (ll i = 2; ; ++i) {
+        if (judge(i, p)) return i;
+    }
+    return -1;
 }
 \end{lstlisting}

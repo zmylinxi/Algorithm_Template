@@ -83,7 +83,7 @@ int main() {
 
 \subsection{编辑距离}
 
-dp[i][j]记录s1的前i个字符转换到s2的前j个字符的最小编辑距离
+dp[i][j] 记录 s1 的前 i 个字符转换到 s2 的前 j 个字符的最小编辑距离
 
 \begin{lstlisting}[language=C++]
 int dp[maxn][maxn];
@@ -506,24 +506,25 @@ m满足四边形不等式是适用这种优化方法的必要条件
 
 通常的动态规划的复杂度是 $O(n^3)$，我们可以优化到 $O(n^2)$
 
-定义s(i,j)为函数m(i,j)对应的使得m(i,j)取得最小值的k值。
+定义 s(i, j) 为函数 m(i, j) 对应的使得 m(i, j) 取得最小值的 k 值。
 
-我们可以证明，s[i,j-1]≤s[i,j]≤s[i+1,j]
+我们可以证明，s[i, j - 1] <= s[i, j] <= s[i + 1, j]
 
 那么改变状态转移方程为：
 
-m[i,j]=min{m[i,k]+m[k,j]}(s[i,j-1]≤k≤s[i+1,j])
+m[i, j] = min{m[i, k] + m[k, j]} (s[i, j - 1] <= k <= s[i + 1, j])
 
-复杂度分析：不难看出，复杂度决定于s的值，以求m[i,i+L]为例，
+复杂度分析：不难看出，复杂度决定于 s 的值，以求 m[i, i + L] 为例，
 
-(s[2,L+1]-s[1,L])+(s[3,L+2]-s[2,L+1])…+(s[n-L+1,n]-s[n-L,n-1])=s[n-L+1,n]-s[1,L]≤n
-所以总复杂度是O(n)
+(s[2, L + 1] - s[1, L]) + (s[3, L + 2] - s[2, L + 1]) … + (s[n - L + 1, n] - s[n - L, n - 1]) = s[n - L + 1, n] - s[1, L] <= n
+
+所以总复杂度是 $O(n)$
 
 \subsubsection{优化环形石子合并  ($O(n^3)$ To $O(n^2)$)}
 
 N 堆石子摆成一个环。现要将石子有次序地合并成一堆。
 
-规定每次只能选相邻的2堆石子合并成新的一堆，并将新的一堆石子数记为该次合并的代价。
+规定每次只能选相邻的 2 堆石子合并成新的一堆，并将新的一堆石子数记为该次合并的代价。
 
 计算将N堆石子合并成一堆的最小代价。
 
@@ -584,20 +585,20 @@ int main() {
 \begin{lstlisting}[language=C++]
 const int maxn = 5e3 + 5;
 ll a[maxn], dp[2][maxn];
-ll MaxSum(int m, int n){
+ll MaxSum(int m, int n) {
     memset(dp, 0, sizeof(dp));
     int now = 1, lst = 0;
-    for(int i = 1; i <= m; i++){
+    for (int i = 1; i <= m; i++) {
         dp[now][i] = dp[lst][i - 1] + a[i];
         ll mx = dp[lst][i - 1];
-        for(int j = i + 1; j <= n - m + i; j++){
+        for (int j = i + 1; j <= n - m + i; j++) {
             mx = max(mx, dp[lst][j - 1]);
             dp[now][j] = max(dp[now][j - 1], mx) + a[j];
         }
         swap(now, lst);
     }
     ll ret = -linf;
-    for(int j = m; j <= n; ++j) ret = max(ret, dp[lst][j]);
+    for (int j = m; j <= n; ++j) ret = max(ret, dp[lst][j]);
     return ret;
 }
 \end{lstlisting}
