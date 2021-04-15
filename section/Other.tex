@@ -285,5 +285,7 @@ public class Main {
     \item 本地打表记得把优化开满
     \item 手动加栈 \#pragma comment(linker, "/STACK:1024000000, 1024000000")
     \item 编译器 O3 优化 \#pragma GCC optimize(3)
-    \item bool 函数如果不写返回值，默认返回 true !!!
+    \item bool 函数如果不写返回值，默认返回值跟编译器版本有关
+    \item 进行类似 dfs 的分治不要在全局变量上乱搞，要在函数内开局部变量进行操作
+    \item 给数排序前不要取模
 \end{itemize}

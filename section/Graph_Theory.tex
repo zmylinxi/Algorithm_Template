@@ -51,9 +51,6 @@ Matrix-Tree 定理(Kirchhoff 矩阵-树定理)
 所谓 n - 1 阶主子式,就是对于 r(1 ≤ r ≤ n), 将 C[G]的第 r 行、第 r 列同时去掉后得到的新矩阵,用 Cr[G] 表示。
 
 \begin{lstlisting}[language=C++]
-struct Edge {
-    int u, v, w;
-} E[maxn*maxn];
 ll d[maxn][maxn], a[maxn][maxn];
 struct Matrix {
     ll mat[maxn][maxn];
@@ -496,12 +493,12 @@ void solve() {
 \subsubsection{普通有向图转 DAG 全家桶（去重边，去自环）}
 
 \begin{lstlisting}[language=C++]
-const int maxn = 1e5 + 5;
+const int MAXN = 1e5 + 5;
 struct Gragh {
     struct Edge {
         int to, nxt;
-    } E[maxn << 1];
-    int head[maxn], tot;
+    } E[MAXN << 1];
+    int head[MAXN], tot;
     void init(int n) {
         for (int i = 0; i <= n; ++i) head[i] = -1;
         tot = 0;
@@ -511,9 +508,9 @@ struct Gragh {
         head[u] = tot++;
     }
 } G1, G2;
-int dfn[maxn], low[maxn], cnt;
-int st[maxn], tp, color[maxn];
-bool ins[maxn];
+int dfn[MAXN], low[MAXN], cnt;
+int st[MAXN], tp, color[MAXN];
+bool ins[MAXN];
 int n, m, t, N;
 void Tarjan(int x) {
     ins[x] = true;
@@ -538,7 +535,7 @@ void Tarjan(int x) {
         }
     }
 }
-unordered_map<int, int> vis[maxn];
+unordered_map<int, int> vis[MAXN];
 void solve() {
     cnt = tp = N = 0;
     for(int i = 0; i <= n; ++i) {
@@ -555,7 +552,7 @@ void solve() {
             int ci = color[i], ct = color[to];
             if(ci == ct) continue;
             ++vis[ci][ct];
-            if(vis[ci][ct] == 1) continue;
+            if(vis[ci][ct] > 1) continue;
             G2.add_edge(ci, ct);
         }
     }

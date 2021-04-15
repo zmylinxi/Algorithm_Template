@@ -459,37 +459,37 @@ ll solve(int lf, int rt, ll mod){
 
 \subsection{莫比乌斯函数}
 
-如果一个数包含平方因子，那么 miu(n) = 0。
+如果一个数包含平方因子，那么 mu(n) = 0。
 
-例如：miu(4), miu(12), miu(18) = 0。
+例如：mu(4), mu(12), mu(18) = 0。
 
-如果一个数不包含平方因子，并且有 k 个不同的质因子，那么 $miu(n) = (-1)^k$。
+如果一个数不包含平方因子，并且有 k 个不同的质因子，那么 $mu(n) = (-1)^k$。
 
-例如：miu(2), miu(3), miu(30) = -1,miu(1), miu(6), miu(10) = 1。
+例如：mu(2), mu(3), mu(30) = -1,mu(1), mu(6), mu(10) = 1。
 
 \subsubsection{线性筛}
 
 \begin{lstlisting}[language=C++]
 const int MAXN = 1e6 + 5;
-int p[MAXN], miu[MAXN], tot;
+int p[MAXN], mu[MAXN], tot;
 bool np[MAXN];
-void get_miu() {
+void get_mu() {
     np[1] = true;
-    miu[1] = 1;
+    mu[1] = 1;
     for (int i = 2; i < MAXN; ++i) {
         if (!np[i]) {
             p[tot++] = i;
-            miu[i] = -1;
+            mu[i] = -1;
         }
         for (int j = 0; j < tot; ++j) {
             int x = i*p[j];
             if (x >= MAXN) break;
             np[x] = true;
             if (i%p[j] == 0) {
-                miu[x] = 0;
+                mu[x] = 0;
                 break;
             } else {
-                miu[x] = -miu[i];
+                mu[x] = -mu[i];
             }
         }
     }
@@ -499,7 +499,7 @@ void get_miu() {
 \subsubsection{$O(\sqrt{x})$ 求单个莫比乌斯函数的值}
 
 \begin{lstlisting}[language=C++]
-int get_miu(ll n){
+int get_mu(ll n){
     int ret = 1;
     for (ll i = 2; i*i <= n; ++i) {
         if (n%i == 0) {
@@ -517,51 +517,80 @@ int get_miu(ll n){
 
 定理：
 
-$F(n)$ 和 $f(n)$ 是定义在非负整数集合上的两个函数，并且满足条件：
+$F(x)$ 和 $f(x)$ 是定义在非负整数集合上的两个函数，并且满足条件：
 
-$$F(n) = \Sigma_{d | n} f(d)$$
+m: multiple, d: divisor
+
+$$F(m) = \Sigma_{d | m} f(d)$$
 
 那么存在一个结论：
 
-$$f(n) = \Sigma_{d | n} \mu (d) F(\frac{n}{d})$$
+$$f(m) = \Sigma_{d | m} \mu (d) F(\frac{m}{d})$$
 
 另外一种形式：
 
-$$F(d) = \Sigma_{d | n} f(n)$$
+$$F(d) = \Sigma_{d | m} f(m)$$
 
 可以推出：
 
-$$f(d) = \Sigma_{d | n} \mu (\frac{n}{d}) F(n)$$
+$$f(d) = \Sigma_{d | m} \mu (\frac{m}{d}) F(m)$$
 
-\subsubsection{数论分块}
+\subsubsection{莫比乌斯反演经典应用}
 
-二维数论分块
+给定一个长度为 $n$ 的数组，$1 <= a _ i <= m$， $k$ 次询问 ($ 1 <= n, m, k <= 10^5$)，每次询问给定一个 $x$， 
+
+$$\Sigma _ {i = 1} ^ {n} \Sigma _ {j = 1} ^ {n} [gcd(a_i, a_j) = x]$$
+
+\begin{lstlisting}[language=C++]
+ll cnt[MAXN], f[MAXN], F[MAXN];
+void init_query(int m) {
+    for (int x = 1; x <= m; ++x) {
+        F[x] = 0;
+        for (int y = x; y <= m; y += x) {
+            F[x] += cnt[y];
+        }
+        F[x] = F[x]*F[x];
+    }
+    for (int x = 1; x <= m; ++x) {
+        f[x] = 0;
+        for (int y = x; y <= m; y += x) {
+            f[x] += miu[y/x]*F[y];
+        }
+    }
+}
+ll query(int m, int x) {
+    if (x < 1 || x > m) return 0LL;
+    return f[x];
+}
+\end{lstlisting}
+
+\subsubsection{二维数论分块}
 
 对于给出的 n 个询问，每次求有多少个数对 $(x, y)$ ，满足 $a \le x \le b$ ， $c \le y \le d$ ，且 $gcd(x, y) = k$ ， $gcd(x, y)$ 函数为 x 和 y 的最大公约数。
 
 \begin{lstlisting}[language=C++]
 int tot;
-int miu[maxn], p[maxn], sum[maxn];
+int mu[maxn], p[maxn], sum[maxn];
 bool notP[maxn];
-void getMiu() {
-    miu[1] = 1; tot = 0;
+void get_mu() {
+    mu[1] = 1; tot = 0;
     sum[0] = 0; sum[1] = 1;
     for(int i = 2; i < maxn; ++i) {
         if(!notP[i]) {
             p[tot++] = i;
-            miu[i] = -1;
+            mu[i] = -1;
         }
         for(int j = 0; j < tot; ++j) {
             int num = i*p[j];
             if(num >= maxn) break;
             notP[num] = true;
             if(i%p[j] == 0) {
-                miu[num] = 0;
+                mu[num] = 0;
                 break;
             }
-            miu[num] = -miu[i];
+            mu[num] = -mu[i];
         }
-        sum[i] = sum[i - 1] + miu[i];
+        sum[i] = sum[i - 1] + mu[i];
     }
 }
 int solve(int a, int b, int d) {
@@ -577,7 +606,7 @@ int solve(int a, int b, int d) {
     return ret;
 }
 int main() {
-    getMiu();
+    get_mu();
     int t; scanf("%d", &t);
     while(t--) {
         int a, b, c, d, k; scanf("%d%d%d%d%d", &a, &b, &c, &d, &k);
@@ -790,9 +819,14 @@ namespace MIN25 {
 
 \subsection{原根}
 
-设 m 是正整数，a 是整数，若 a 模 m 的阶等于 $\phi (m)$，则称 a 为模 m 的一个原根。（其中 $\phi (m)$ 表示 m 的欧拉函数）
+原根的性质：
 
-当模数为素数 p 时，g 为 p 的原根 当且仅当, 对于 p - 1 的所有质因子 $p _ i$ 都满足 $g ^ {\frac{p - 1}{p _ i}} \% p != 1$
+\begin{itemize}
+    \item 若 $m$ 有原根，则 $m$ 一定是下列形式： $2, 4, p^a, 2p^a$ ，$p$ 为奇素数， $a$ 为正整数
+    \item 若一个数 $m$ 存在原根，可以证明 $m$ 的最小原根在 $O(m^{0.25})$ 级别
+    \item 设 $m$ 是正整数，$a$ 是整数，若 $a$ 模 $m$ 的阶等于 $\phi (m)$，则称 a 为模 m 的一个原根。（其中 $\phi (m)$ 表示 m 的欧拉函数）
+    \item 当模数为素数 $p$ 时，$g$ 为 $p$ 的原根 当且仅当, 对于 $p - 1$ 的所有质因子 $p _ i$ 都满足 $g ^ {\frac{p - 1}{p _ i}} \% p != 1$
+\end{itemize}
 
 \begin{lstlisting}[language=C++]
 ll fac[MAXN];
@@ -830,4 +864,86 @@ ll get_root(ll p) {
     }
     return -1;
 }
+\end{lstlisting}
+
+\subsection{Miller Rabbin 大素数判定及 Pollard Rho 大数素因数分解}
+
+\begin{lstlisting}[language=C++]
+ll mul(ll a, ll b, ll c){
+    ll ret = 0;
+    while (b > 0){
+        if((b & 1) == 1) ret = (ret + a)%c;
+        a = (a + a)%c;
+        b >>= 1;
+    }
+    return ret;
+}
+ll pw(ll a, ll b, ll c){
+    ll ret = 1;
+    while (b > 0){
+        if((b & 1) == 1) ret = mul(ret, a, c);
+        a = mul(a, a, c);
+        b >>= 1;
+    }
+    return ret;
+}
+mt19937 mt(time(nullptr));
+class MillerRabbin {
+    static const int LOOPS = 6;
+public:
+    bool solve(ll n) {
+        if (n == 2) return true;
+        if (n < 2 || (n & 1) == 0) return false;
+        int t = 0;
+        ll a, x, y, u = n - 1;
+        while ((u & 1) == 0) ++t, u >>= 1;
+        for (int lp = 0; lp < LOOPS; ++lp){
+            a = mt()%(n - 1) + 1;
+            x = pw(a, u, n);
+            for (int j = 0; j < t; ++j) {
+                y = mul(x, x, n);
+                if (y == 1 && x != 1 && x != n - 1)
+                    return false;
+                x = y;
+            }
+            if (x != 1) return false;
+        }
+        return true;
+    }
+} mr;
+class PollardRho {
+    ll find_factor(ll x, ll c) {
+        ll x0 = mt()%x;
+        ll y = x0, i = 1, k = 2;
+        while (true) {
+            x0 = (mul(x0, x0, x) + c)%x;
+            ll d = __gcd(abs(y - x0), x);
+            if (d != 1 && d != x) return d;
+            if (y == x0) return x;
+            if (++i == k) {
+                y = x0;
+                k += k;
+            }
+        }
+        assert(false);
+        return -1LL;
+    }
+    void work(ll x) {
+        if(mr.solve(x)) {
+            fac.push_back(x);
+            return ;
+        }
+        ll p = x;
+        while (p >= x) {
+            p = find_factor(p, mt()%(x - 1) + 1);
+        }
+        work(p); work(x/p);
+    }
+public:
+    vector<ll> fac;
+    void solve(ll x) {
+        fac.clear();
+        work(x);
+    }
+} pr;
 \end{lstlisting}
